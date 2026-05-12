@@ -50,9 +50,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="menu"
+        name="Restaurantes"
         options={{
-          title: 'Menú',
+          title: 'Restaurantes',
           tabBarIcon: ({ color }) => <Utensils size={24} color={color} />,
         }}
       />

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Pressable, TextInput } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, withSequence, FadeInDown, FadeIn } from 'react-native-reanimated';
-import { ArrowLeft, Star, RotateCw, Info, Flame, Heart, ChevronRight } from 'lucide-react-native';
+import { ArrowLeft, Star, RotateCw, Info, Flame, Heart, ChevronRight, Search } from 'lucide-react-native';
 import { RedButton } from '@/components/RedButton';
 import { GastronomicColors } from '@/constants/theme';
 import { useRouter } from 'expo-router';
+
 
 const menuItems = [
   {
@@ -76,6 +77,7 @@ export default function MenuScreen() {
   const [selectedDish, setSelectedDish] = useState(menuItems[0]);
   const [showInfo, setShowInfo] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   
   const rotationY = useSharedValue(0);
   const scale = useSharedValue(1);
@@ -87,7 +89,7 @@ export default function MenuScreen() {
 
   const handleDishSelect = (dish: typeof menuItems[0]) => {
     setSelectedDish(dish);
-    rotationY.value = 0; // reset
+    rotationY.value = 0; // reiniciar
     setShowInfo(false);
   };
 
@@ -101,12 +103,40 @@ export default function MenuScreen() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header */}
+      {/* Encabezado */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft color="#1D1D1D" size={24} />
         </TouchableOpacity>
         
+
+{/* Búsqueda */}
+      <Animated.View entering={FadeInDown.duration(400).delay(100)} style={styles.searchContainer}>
+        <View style={[styles.searchInputWrapper, searchFocused && styles.searchInputFocused]}>
+          <Search color={searchFocused ? GastronomicColors.primary : GastronomicColors.textLight} size={20} style={styles.searchIcon} />
+          <TextInput
+            placeholder="Buscar platos, lugares, municipios..."
+            placeholderTextColor={GastronomicColors.textLight}
+            style={styles.searchInput}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+          />
+        </View>
+        {searchFocused && (
+          <Animated.View entering={FadeInDown} style={styles.searchSuggestions}>
+            <Text style={styles.suggestionsTitle}>Búsquedas populares:</Text>
+            <View style={styles.suggestionsRow}>
+              {['Donde Juancho', 'centro', 'San Onofre', 'guacari', 'viva'].map((term) => (
+                <TouchableOpacity key={term} style={styles.suggestionTag}>
+                  <Text style={styles.suggestionText}>{term}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Animated.View>
+        )}
+      </Animated.View>
+
+
         <View style={styles.headerInfo}>
           <View>
             <Text style={styles.restaurantName}>{restaurant.name}</Text>
@@ -121,7 +151,7 @@ export default function MenuScreen() {
         </View>
       </View>
 
-      {/* 3D Viewer Section */}
+      {/* Sección del Visor 3D */}
       <View style={styles.viewerSection}>
         <View style={styles.viewerContainer}>
           <View style={styles.viewerHeader}>
@@ -134,9 +164,9 @@ export default function MenuScreen() {
             </View>
           </View>
 
-          {/* 3D Box */}
+          {/* Caja 3D */}
           <Pressable style={styles.interactiveBox} onPress={handleRotate}>
-            {/* Background Grid Illusion */}
+            {/* Ilusión de Cuadrícula de Fondo */}
             <View style={styles.gridBackground} />
             
             <Animated.View style={[styles.dishWrapper, animatedDishStyle]}>
@@ -148,12 +178,12 @@ export default function MenuScreen() {
               />
             </Animated.View>
 
-            {/* Price Tag */}
+            {/* Etiqueta de Precio */}
             <View style={styles.priceTag}>
               <Text style={styles.priceTagText}>{selectedDish.price}</Text>
             </View>
 
-            {/* Like Button */}
+            {/* Botón de Me Gusta */}
             <TouchableOpacity 
               style={styles.likeButton} 
               onPress={(e) => { e.stopPropagation(); setLiked(!liked); }}
@@ -165,14 +195,14 @@ export default function MenuScreen() {
               />
             </TouchableOpacity>
 
-            {/* Hint */}
+            {/* Pista */}
             <View style={styles.hintBadge}>
               <RotateCw color={GastronomicColors.textLight} size={12} />
               <Text style={styles.hintText}>Toca para rotar</Text>
             </View>
           </Pressable>
 
-          {/* Controls */}
+          {/* Controles */}
           <View style={styles.controlsRow}>
             <TouchableOpacity style={styles.controlButton} onPress={handleRotate}>
               <RotateCw color={GastronomicColors.primary} size={20} />
@@ -185,7 +215,7 @@ export default function MenuScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Info Panel */}
+          {/* Panel de Información */}
           {showInfo && (
             <Animated.View entering={FadeInDown} style={styles.infoPanel}>
               <Text style={styles.infoTitle}>{selectedDish.name}</Text>
@@ -202,12 +232,12 @@ export default function MenuScreen() {
             </Animated.View>
           )}
 
-          {/* AR CTA */}
+          {/* Botón de Realidad Aumentada (AR) */}
           <RedButton style={{ paddingVertical: 16 }}>🥽 Ver en Realidad Aumentada (AR)</RedButton>
         </View>
       </View>
 
-      {/* Full Menu List */}
+      {/* Lista Completa del Menú */}
       <View style={styles.menuListSection}>
         <Text style={styles.listTitle}>Menú Completo del Restaurante</Text>
         
@@ -364,7 +394,7 @@ const styles = StyleSheet.create({
   gridBackground: {
     ...StyleSheet.absoluteFillObject,
     opacity: 0.1,
-    // A simplified grid effect natively
+    // Un efecto de cuadrícula simplificado de forma nativa
   },
   dishWrapper: {
     width: 240,
@@ -375,7 +405,7 @@ const styles = StyleSheet.create({
   dishImage: {
     width: '100%',
     height: '100%',
-    // shadow using drop-shadow requires careful platform specifics or just images
+    // la sombra requiere especificaciones de plataforma o imágenes
   },
   dishShadow: {
     position: 'absolute',
@@ -585,5 +615,58 @@ const styles = StyleSheet.create({
   itemPrice: {
     fontWeight: 'bold',
     color: GastronomicColors.primary,
+  },
+  searchContainer: {
+    marginBottom: 16,
+  },
+  searchInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  searchInputFocused: {
+    borderColor: GastronomicColors.primary,
+    backgroundColor: '#FFF',
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: GastronomicColors.textDark,
+  },
+  searchSuggestions: {
+    marginTop: 10,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  suggestionsTitle: {
+    fontSize: 13,
+    color: GastronomicColors.textLight,
+    marginBottom: 10,
+  },
+  suggestionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  suggestionTag: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  suggestionText: {
+    fontSize: 13,
+    color: GastronomicColors.textDark,
   },
 });

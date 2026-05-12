@@ -61,16 +61,16 @@ export default function PerfilScreen() {
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
-        {/* Header Cover */}
+        {/* Portada del Encabezado */}
         <LinearGradient
           colors={['#E63946', '#d32f3c']}
           style={styles.headerCover}
         >
-          {/* We use an overlay to give texture */}
+          {/* Usamos un overlay para dar textura */}
           <View style={styles.coverOverlay} />
         </LinearGradient>
 
-        {/* Profile Card */}
+        {/* Tarjeta de Perfil */}
         <View style={styles.profileCardWrapper}>
           <Animated.View entering={FadeInDown.duration(400)} style={styles.profileCard}>
             
@@ -102,7 +102,7 @@ export default function PerfilScreen() {
               </View>
             </View>
 
-            {/* Stats */}
+            {/* Estadísticas */}
             <View style={styles.statsGrid}>
               <View style={styles.statBox}>
                 <Text style={styles.statValue}>{userData.stats.routesCompleted}</Text>
@@ -124,7 +124,7 @@ export default function PerfilScreen() {
           </Animated.View>
         </View>
 
-        {/* Emergency Button */}
+        {/* Botón de Emergencia */}
         <Animated.View entering={FadeInDown.delay(100)} style={styles.section}>
           <TouchableOpacity onPress={() => setShowEmergencyModal(true)}>
             <LinearGradient
@@ -143,7 +143,7 @@ export default function PerfilScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Personal Info */}
+        {/* Información Personal */}
         <Animated.View entering={FadeInDown.delay(200)} style={styles.section}>
           <Text style={styles.sectionTitle}>Información Personal</Text>
           <View style={styles.infoList}>
@@ -171,7 +171,7 @@ export default function PerfilScreen() {
           </View>
         </Animated.View>
 
-        {/* Emergency Contacts */}
+        {/* Contactos de Emergencia */}
         <Animated.View entering={FadeInDown.delay(300)} style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Contactos de Emergencia</Text>
@@ -190,7 +190,7 @@ export default function PerfilScreen() {
           ))}
         </Animated.View>
 
-        {/* Insurance Information */}
+        {/* Información del Seguro */}
         <Animated.View entering={FadeInDown.delay(400)} style={styles.section}>
           <Text style={styles.sectionTitle}>Seguro Médico</Text>
           <View style={styles.insuranceCard}>
@@ -211,7 +211,7 @@ export default function PerfilScreen() {
           </View>
         </Animated.View>
 
-        {/* Documents */}
+        {/* Documentos */}
         <Animated.View entering={FadeInDown.delay(500)} style={styles.section}>
           <Text style={styles.sectionTitle}>Documentos Importantes</Text>
           <View style={styles.infoList}>
@@ -256,7 +256,7 @@ export default function PerfilScreen() {
           </View>
         </Animated.View>
 
-        {/* Logout */}
+        {/* Cerrar Sesión */}
         <View style={styles.logoutSection}>
           <TouchableOpacity style={styles.logoutButton}>
             <LogOut color={GastronomicColors.textLight} size={20} />
@@ -266,7 +266,7 @@ export default function PerfilScreen() {
 
       </ScrollView>
 
-      {/* Emergency Modal */}
+      {/* Modal de Emergencia */}
       <Modal
         visible={showEmergencyModal}
         transparent={true}

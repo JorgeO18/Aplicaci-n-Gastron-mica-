@@ -90,7 +90,7 @@ export default function MapaScreen() {
     setVisitedStops([...visitedStops, currentStopIndex]);
   };
 
-  // Reanimated style for active pin pulsing
+  // Estilo de Reanimated para el pulso del pin activo
   const pulseAnim = useAnimatedStyle(() => ({
     transform: [
       {
@@ -105,7 +105,7 @@ export default function MapaScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Map Area */}
+      {/* Área del Mapa */}
       <View style={styles.mapArea}>
         <View style={styles.gridOverlay}>
           <Svg height="100%" width="100%">
@@ -130,18 +130,18 @@ export default function MapaScreen() {
           </Svg>
         </View>
 
-        {/* Location Label */}
+        {/* Etiqueta de Ubicación */}
         <View style={styles.locationBadge}>
           <Text style={styles.locationTitle}>📍 Sincelejo, Sucre</Text>
           <Text style={styles.locationSubtitle}>Centro histórico</Text>
         </View>
 
-        {/* Navigation Button */}
+        {/* Botón de Navegación */}
         <TouchableOpacity style={styles.navButton}>
           <Navigation color={GastronomicColors.primary} size={20} />
         </TouchableOpacity>
 
-        {/* Pins */}
+        {/* Pines */}
         {restaurants.map((restaurant, index) => {
           const isCurrent = index === currentStopIndex;
           const isVisited = visitedStops.includes(index);
@@ -171,7 +171,7 @@ export default function MapaScreen() {
           );
         })}
 
-        {/* Progress Indicator */}
+        {/* Indicador de Progreso */}
         <View style={styles.progressBadge}>
           <Award color={GastronomicColors.primary} size={16} />
           <Text style={styles.progressText}>
@@ -180,7 +180,7 @@ export default function MapaScreen() {
         </View>
       </View>
 
-      {/* Bottom Sheet */}
+      {/* Panel Inferior */}
       <Animated.ScrollView 
         entering={FadeInDown.duration(500)}
         style={styles.bottomSheet} 
@@ -226,7 +226,7 @@ export default function MapaScreen() {
           <Text style={styles.addressText}>{currentStop.address}</Text>
         </View>
 
-        {/* Story Section */}
+        {/* Sección de Historia */}
         {showStory && (
           <View style={styles.storyBox}>
             <Text style={styles.storyTitle}>📖 Historia del lugar</Text>
@@ -242,7 +242,7 @@ export default function MapaScreen() {
 
         <Image source={{ uri: currentStop.imageUrl }} style={styles.restaurantImage} />
 
-        {/* Must Try */}
+        {/* Debes Probar */}
         <View style={styles.mustTryBox}>
           <Text style={styles.mustTryTitle}>
             <Utensils color={GastronomicColors.primary} size={20} /> Debes probar:
@@ -255,7 +255,7 @@ export default function MapaScreen() {
           ))}
         </View>
 
-        {/* Grid Info */}
+        {/* Cuadrícula de Información */}
         <View style={styles.infoGrid}>
           <View style={styles.infoCard}>
             <View style={styles.infoCardHeader}>
@@ -287,7 +287,7 @@ export default function MapaScreen() {
           </View>
         </View>
 
-        {/* Action Buttons */}
+        {/* Botones de Acción */}
         <View style={styles.actionContainer}>
           {!visitedStops.includes(currentStopIndex) && (
             <RedButton onPress={handleCheckIn} style={{ marginBottom: 12, paddingVertical: 16 }}>

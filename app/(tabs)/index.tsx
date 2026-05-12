@@ -226,7 +226,7 @@ export default function HomeScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
       
-      {/* Header */}
+      {/* Encabezado */}
       <Animated.View entering={FadeInDown.duration(500)} style={styles.header}>
         <Animated.View style={animatedTitleStyle}>
           <Text style={styles.title}>¡Bienvenido a Sucre! 🌴</Text>
@@ -238,7 +238,7 @@ export default function HomeScreen() {
         </View>
       </Animated.View>
 
-      {/* Special Offer */}
+      {/* Oferta Especial */}
       {showSpecialOffer && (
         <Animated.View entering={FadeIn.duration(400)}>
           <LinearGradient
@@ -268,7 +268,7 @@ export default function HomeScreen() {
         </Animated.View>
       )}
 
-      {/* User Stats */}
+      {/* Estadísticas de Usuario */}
       <UserStats 
         achievements={achievements}
         routesCompleted={2}
@@ -276,7 +276,7 @@ export default function HomeScreen() {
         totalRoutes={6}
       />
 
-      {/* Search */}
+      {/* Búsqueda */}
       <Animated.View entering={FadeInDown.duration(400).delay(100)} style={styles.searchContainer}>
         <View style={[styles.searchInputWrapper, searchFocused && styles.searchInputFocused]}>
           <Search color={searchFocused ? GastronomicColors.primary : GastronomicColors.textLight} size={20} style={styles.searchIcon} />
@@ -302,7 +302,7 @@ export default function HomeScreen() {
         )}
       </Animated.View>
 
-      {/* Filters */}
+      {/* Filtros */}
       <Animated.View entering={FadeInDown.duration(500).delay(200)}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
           {filters.map((filter) => (
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 20,
-    paddingTop: 60, // For status bar spacing
+    paddingTop: 60, // Espaciado para la barra de estado
     paddingBottom: 40,
   },
   header: {

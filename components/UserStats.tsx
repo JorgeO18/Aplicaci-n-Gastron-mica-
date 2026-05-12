@@ -36,10 +36,10 @@ export const UserStats: React.FC<UserStatsProps> = ({
   const trophyRotate = useSharedValue(0);
 
   useEffect(() => {
-    // Animate progress bar
+    // Animar barra de progreso
     progressAnim.value = withTiming((routesCompleted / totalRoutes) * 100, { duration: 1000 });
 
-    // Animate Trophy
+    // Animar Trofeo
     trophyRotate.value = withRepeat(
       withSequence(
         withTiming(-10, { duration: 500 }),
@@ -91,7 +91,7 @@ export const UserStats: React.FC<UserStatsProps> = ({
         </View>
       </View>
 
-      {/* Progress Bar */}
+      {/* Barra de Progreso */}
       <View style={styles.progressContainer}>
         <View style={styles.progressHeader}>
           <Text style={styles.progressText}>Progreso de exploración</Text>
@@ -104,7 +104,7 @@ export const UserStats: React.FC<UserStatsProps> = ({
         </View>
       </View>
 
-      {/* Achievements Preview */}
+      {/* Vista Previa de Logros */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.achievementsRow}>
         {achievements.slice(0, 4).map((achievement) => (
           <View

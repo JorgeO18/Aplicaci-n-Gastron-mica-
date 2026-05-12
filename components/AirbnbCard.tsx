@@ -48,7 +48,7 @@ export const AirbnbCard: React.FC<AirbnbCardProps> = ({
           style={styles.gradientOverlay}
         />
         
-        {/* Heart Button */}
+        {/* Botón de Corazón */}
         <TouchableOpacity 
           style={styles.heartButton}
           onPress={() => setLiked(!liked)}
@@ -60,12 +60,12 @@ export const AirbnbCard: React.FC<AirbnbCardProps> = ({
           />
         </TouchableOpacity>
 
-        {/* Host Type Badge */}
+        {/* Etiqueta del Tipo de Anfitrión */}
         <View style={styles.hostBadge}>
           <Text style={styles.hostBadgeText}>{hostType}</Text>
         </View>
 
-        {/* Distance */}
+        {/* Distancia */}
         <View style={styles.distanceBadge}>
           <MapPin color={GastronomicColors.primary} size={12} />
           <Text style={styles.distanceText}>{distance} de la ruta</Text>
@@ -85,7 +85,7 @@ export const AirbnbCard: React.FC<AirbnbCardProps> = ({
           </View>
         </View>
 
-        {/* Amenities */}
+        {/* Comodidades */}
         <View style={styles.amenitiesContainer}>
           {amenities.slice(0, 3).map((amenity, index) => (
             <View key={index} style={styles.amenityBadge}>
