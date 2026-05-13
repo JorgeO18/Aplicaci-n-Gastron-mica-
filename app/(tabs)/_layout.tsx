@@ -70,6 +70,12 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="restaurantesRA"
+        options={{
+          title: 'Restaurantes',
+          tabBarIcon: ({ color }) => <Utensils size={24} color={color} />,
+        }}/>
     </Tabs>
   );
 }
