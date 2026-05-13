@@ -20,7 +20,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.eliercode.aplicaciongastronomica"
+      "package": "com.jorge_ortega.aplicaciongastronomica"
     },
     "web": {
       "output": "static",

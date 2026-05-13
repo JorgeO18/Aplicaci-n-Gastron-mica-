@@ -1,310 +1,133 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Pressable, Linking } from 'react-native';
-import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
-import { 
-  MapPin, Camera, Edit, AlertTriangle, ChevronRight, 
-  Phone, Mail, Activity, FileText, Upload, Shield, LogOut
-} from 'lucide-react-native';
-import { GastronomicColors } from '@/constants/theme';
+// Pantalla de Perfil de Usuario - Estilo TasteGo con Contactos de Emergencia
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Colors } from '@/constants/colors';
+import { Spacing } from '@/constants/spacing';
+import { Typography } from '@/constants/typography';
 
-const userData = {
-  name: 'Ana María Rodríguez',
-  email: 'ana.rodriguez@email.com',
-  phone: '+57 315 234 5678',
-  bloodType: 'O+',
-  location: 'Sincelejo, Sucre',
-  memberSince: 'Febrero 2026',
-  stats: {
-    routesCompleted: 8,
-    placesVisited: 23,
-    achievements: 12,
-    points: 850,
-  },
-  emergencyContacts: [
-    { name: 'Carlos Rodríguez', relation: 'Esposo', phone: '+57 320 456 7890' },
-    { name: 'Marta López', relation: 'Madre', phone: '+57 318 234 5678' },
-  ],
-  insurance: {
-    provider: 'Seguros Bolívar',
-    policy: 'POL-2024-45678',
-    emergency: '018000 123 456',
-  },
-  documents: {
-    id: true,
-    insurance: true,
-    medicalHistory: false,
-  },
-};
+interface ProfileField {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  color?: string;
+}
 
-const emergencyServices = [
-  { id: 'medical', name: 'Centro Médico', phone: '123', color: '#ef4444', icon: '🚑' },
-  { id: 'police', name: 'Policía', phone: '112', color: '#3b82f6', icon: '🚓' },
-  { id: 'fire', name: 'Bomberos', phone: '119', color: '#f97316', icon: '🚒' },
-  { id: 'tow', name: 'Grúa', phone: '+57 315 999 9999', color: '#ca8a04', icon: '🛻' },
+const profileFields: ProfileField[] = [
+  { icon: 'person-outline', label: 'Username', value: 'ana_rodriguez' },
+  { icon: 'mail-outline', label: 'Correo electrónico', value: 'ana.rodriguez@email.com' },
+  { icon: 'call-outline', label: 'Teléfono', value: '+57 315 234 5678' },
+  { icon: 'location-outline', label: 'Ubicación', value: 'Sincelejo, Sucre' },
 ];
 
-export default function PerfilScreen() {
-  const [showEmergencyModal, setShowEmergencyModal] = useState(false);
-  const [selectedEmergency, setSelectedEmergency] = useState<string | null>(null);
+const emergencyContacts = [
+  { name: 'Carlos Rodríguez', relation: 'Esposo', phone: '+57 320 456 7890' },
+  { name: 'Marta López', relation: 'Madre', phone: '+57 318 234 5678' },
+];
 
-  const handleEmergencyCall = (service: typeof emergencyServices[0]) => {
-    setSelectedEmergency(service.id);
-    setTimeout(() => {
-      setSelectedEmergency(null);
-      setShowEmergencyModal(false);
-      Linking.openURL(`tel:${service.phone}`).catch(console.error);
-    }, 1500);
+const menuItems = [
+  { icon: 'settings-outline' as const, label: 'Configuración', color: Colors.textSecondary },
+  { icon: 'help-circle-outline' as const, label: 'Ayuda y soporte', color: Colors.textSecondary },
+  { icon: 'document-text-outline' as const, label: 'Términos y condiciones', color: Colors.textSecondary },
+  { icon: 'shield-checkmark-outline' as const, label: 'Privacidad', color: Colors.textSecondary },
+  { icon: 'log-out-outline' as const, label: 'Cerrar sesión', color: Colors.error },
+];
+
+export default function ProfileScreen() {
+  const handleCall = (phone: string) => {
+    Linking.openURL(`tel:${phone}`).catch(console.error);
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
-        {/* Portada del Encabezado */}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header con gradiente */}
         <LinearGradient
-          colors={['#E63946', '#d32f3c']}
-          style={styles.headerCover}
+          colors={[Colors.primary, Colors.gradientStart]}
+          style={styles.headerGradient}
         >
-          {/* Usamos un overlay para dar textura */}
-          <View style={styles.coverOverlay} />
+          <Text style={styles.headerTitle}>Mi Perfil</Text>
+
+          {/* Avatar */}
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>AR</Text>
+            </View>
+            <TouchableOpacity style={styles.editAvatar}>
+              <Ionicons name="camera" size={14} color={Colors.textWhite} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.userName}>Ana María Rodríguez</Text>
+          <Text style={styles.userEmail}>ana.rodriguez@email.com</Text>
         </LinearGradient>
 
-        {/* Tarjeta de Perfil */}
-        <View style={styles.profileCardWrapper}>
-          <Animated.View entering={FadeInDown.duration(400)} style={styles.profileCard}>
-            
-            <View style={styles.profileHeaderRow}>
-              <View style={styles.avatarContainer}>
-                <LinearGradient
-                  colors={['#E63946', '#d32f3c']}
-                  style={styles.avatarGradient}
-                >
-                  <Text style={styles.avatarInitials}>AM</Text>
-                </LinearGradient>
-                <TouchableOpacity style={styles.cameraButton}>
-                  <Camera color={GastronomicColors.primary} size={14} />
-                </TouchableOpacity>
-              </View>
+        {/* Curva */}
+        <View style={styles.curve} />
 
-              <View style={styles.userInfo}>
-                <View style={styles.nameRow}>
-                  <Text style={styles.userName}>{userData.name}</Text>
-                  <TouchableOpacity style={styles.editButton}>
-                    <Edit color={GastronomicColors.textLight} size={14} />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.locationRow}>
-                  <MapPin color={GastronomicColors.textLight} size={12} />
-                  <Text style={styles.locationText}>{userData.location}</Text>
-                </View>
-                <Text style={styles.memberText}>Miembro desde {userData.memberSince}</Text>
+        {/* Información personal */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Información Personal</Text>
+          {profileFields.map((field, index) => (
+            <TouchableOpacity key={index} style={styles.fieldRow} activeOpacity={0.7}>
+              <View style={styles.fieldIcon}>
+                <Ionicons name={field.icon} size={20} color={Colors.primary} />
               </View>
-            </View>
-
-            {/* Estadísticas */}
-            <View style={styles.statsGrid}>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>{userData.stats.routesCompleted}</Text>
-                <Text style={styles.statLabel}>Rutas</Text>
+              <View style={styles.fieldContent}>
+                <Text style={styles.fieldLabel}>{field.label}</Text>
+                <Text style={styles.fieldValue}>{field.value}</Text>
               </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>{userData.stats.placesVisited}</Text>
-                <Text style={styles.statLabel}>Lugares</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>{userData.stats.achievements}</Text>
-                <Text style={styles.statLabel}>Logros</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>{userData.stats.points}</Text>
-                <Text style={styles.statLabel}>Puntos</Text>
-              </View>
-            </View>
-          </Animated.View>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Botón de Emergencia */}
-        <Animated.View entering={FadeInDown.delay(100)} style={styles.section}>
-          <TouchableOpacity onPress={() => setShowEmergencyModal(true)}>
-            <LinearGradient
-              colors={['#ef4444', '#dc2626']}
-              style={styles.emergencyButton}
-            >
-              <View style={styles.emergencyContent}>
-                <AlertTriangle color="#FFF" size={32} />
-                <View>
-                  <Text style={styles.emergencyTitle}>Botón de Emergencia</Text>
-                  <Text style={styles.emergencySubtitle}>Ayuda inmediata 24/7</Text>
-                </View>
-              </View>
-              <ChevronRight color="#FFF" size={24} />
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
-
-        {/* Información Personal */}
-        <Animated.View entering={FadeInDown.delay(200)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Información Personal</Text>
-          <View style={styles.infoList}>
-            <View style={styles.infoItem}>
-              <Phone color={GastronomicColors.primary} size={20} />
-              <View style={styles.infoTexts}>
-                <Text style={styles.infoLabel}>Teléfono</Text>
-                <Text style={styles.infoValue}>{userData.phone}</Text>
-              </View>
-            </View>
-            <View style={styles.infoItem}>
-              <Mail color={GastronomicColors.primary} size={20} />
-              <View style={styles.infoTexts}>
-                <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{userData.email}</Text>
-              </View>
-            </View>
-            <View style={styles.infoItem}>
-              <Activity color={GastronomicColors.primary} size={20} />
-              <View style={styles.infoTexts}>
-                <Text style={styles.infoLabel}>Tipo de Sangre</Text>
-                <Text style={[styles.infoValue, { color: GastronomicColors.primary }]}>{userData.bloodType}</Text>
-              </View>
-            </View>
-          </View>
-        </Animated.View>
-
         {/* Contactos de Emergencia */}
-        <Animated.View entering={FadeInDown.delay(300)} style={styles.section}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Contactos de Emergencia</Text>
-            <TouchableOpacity><Text style={styles.addButtonText}>+ Agregar</Text></TouchableOpacity>
+            <TouchableOpacity>
+              <Text style={styles.addButtonText}>+ Agregar</Text>
+            </TouchableOpacity>
           </View>
-          {userData.emergencyContacts.map((contact, index) => (
-            <View key={index} style={styles.contactItem}>
-              <View>
-                <Text style={styles.contactName}>{contact.name}</Text>
-                <Text style={styles.contactRelation}>{contact.relation}</Text>
+          {emergencyContacts.map((contact, index) => (
+            <View key={index} style={styles.contactCard}>
+              <View style={styles.contactInfo}>
+                <View style={styles.contactIcon}>
+                  <Ionicons name="alert-circle-outline" size={24} color="#ef4444" />
+                </View>
+                <View>
+                  <Text style={styles.contactName}>{contact.name}</Text>
+                  <Text style={styles.contactRelation}>{contact.relation}</Text>
+                </View>
               </View>
-              <TouchableOpacity style={styles.callButton} onPress={() => Linking.openURL(`tel:${contact.phone}`)}>
+              <TouchableOpacity style={styles.callButton} onPress={() => handleCall(contact.phone)}>
+                <Ionicons name="call" size={18} color={Colors.textWhite} />
                 <Text style={styles.callButtonText}>Llamar</Text>
               </TouchableOpacity>
             </View>
           ))}
-        </Animated.View>
-
-        {/* Información del Seguro */}
-        <Animated.View entering={FadeInDown.delay(400)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Seguro Médico</Text>
-          <View style={styles.insuranceCard}>
-            <View style={styles.insuranceHeader}>
-              <Shield color="#2563eb" size={24} />
-              <View>
-                <Text style={styles.insuranceProvider}>{userData.insurance.provider}</Text>
-                <Text style={styles.insurancePolicy}>Póliza: {userData.insurance.policy}</Text>
-              </View>
-            </View>
-            <TouchableOpacity 
-              style={styles.insuranceCallButton} 
-              onPress={() => Linking.openURL(`tel:${userData.insurance.emergency}`)}
-            >
-              <Phone color="#FFF" size={16} />
-              <Text style={styles.insuranceCallText}>Línea de Emergencia</Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-
-        {/* Documentos */}
-        <Animated.View entering={FadeInDown.delay(500)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Documentos Importantes</Text>
-          <View style={styles.infoList}>
-            <View style={styles.documentItem}>
-              <View style={styles.documentInfo}>
-                <FileText color={GastronomicColors.primary} size={20} />
-                <View>
-                  <Text style={styles.documentName}>Cédula de Identidad</Text>
-                  <Text style={styles.documentStatus}>{userData.documents.id ? '✓ Cargado' : 'No cargado'}</Text>
-                </View>
-              </View>
-              <TouchableOpacity style={styles.documentAction}>
-                {userData.documents.id ? <Edit color={GastronomicColors.textLight} size={16} /> : <Upload color={GastronomicColors.primary} size={16} />}
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.documentItem}>
-              <View style={styles.documentInfo}>
-                <FileText color={GastronomicColors.primary} size={20} />
-                <View>
-                  <Text style={styles.documentName}>Tarjeta Seguro Médico</Text>
-                  <Text style={styles.documentStatus}>{userData.documents.insurance ? '✓ Cargado' : 'No cargado'}</Text>
-                </View>
-              </View>
-              <TouchableOpacity style={styles.documentAction}>
-                {userData.documents.insurance ? <Edit color={GastronomicColors.textLight} size={16} /> : <Upload color={GastronomicColors.primary} size={16} />}
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.documentItem}>
-              <View style={styles.documentInfo}>
-                <FileText color={GastronomicColors.primary} size={20} />
-                <View>
-                  <Text style={styles.documentName}>Historia Médica</Text>
-                  <Text style={styles.documentStatus}>{userData.documents.medicalHistory ? '✓ Cargado' : 'No cargado'}</Text>
-                </View>
-              </View>
-              <TouchableOpacity style={styles.documentAction}>
-                <Upload color={GastronomicColors.primary} size={16} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Animated.View>
-
-        {/* Cerrar Sesión */}
-        <View style={styles.logoutSection}>
-          <TouchableOpacity style={styles.logoutButton}>
-            <LogOut color={GastronomicColors.textLight} size={20} />
-            <Text style={styles.logoutText}>Cerrar Sesión</Text>
-          </TouchableOpacity>
         </View>
 
-      </ScrollView>
-
-      {/* Modal de Emergencia */}
-      <Modal
-        visible={showEmergencyModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowEmergencyModal(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowEmergencyModal(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHandle} />
-            
-            <Text style={styles.modalTitle}>¿Qué tipo de ayuda necesitas?</Text>
-            <Text style={styles.modalSubtitle}>Selecciona el servicio de emergencia</Text>
-
-            <View style={styles.servicesGrid}>
-              {emergencyServices.map((service) => (
-                <TouchableOpacity
-                  key={service.id}
-                  style={[styles.serviceButton, { backgroundColor: service.color }]}
-                  onPress={() => handleEmergencyCall(service)}
-                  disabled={selectedEmergency !== null}
-                >
-                  <Text style={styles.serviceIcon}>{service.icon}</Text>
-                  <Text style={styles.serviceName}>{service.name}</Text>
-                  <Text style={styles.servicePhone}>{service.phone}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TouchableOpacity 
-              style={styles.modalCancelButton} 
-              onPress={() => setShowEmergencyModal(false)}
-            >
-              <Text style={styles.modalCancelText}>Cancelar</Text>
+        {/* General */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>General</Text>
+          {menuItems.map((item, index) => (
+            <TouchableOpacity key={index} style={styles.menuRow} activeOpacity={0.7}>
+              <View style={[styles.menuIcon, { backgroundColor: item.color + '15' }]}>
+                <Ionicons name={item.icon} size={20} color={item.color} />
+              </View>
+              <Text style={[styles.menuLabel, item.color === Colors.error && { color: Colors.error }]}>
+                {item.label}
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
             </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
+          ))}
+        </View>
 
+        <View style={{ height: Spacing.xxl }} />
+      </ScrollView>
     </View>
   );
 }
@@ -312,385 +135,190 @@ export default function PerfilScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFAFA',
+    backgroundColor: Colors.background,
   },
-  scrollContent: {
+  headerGradient: {
+    paddingTop: 50,
     paddingBottom: 40,
-  },
-  headerCover: {
-    height: 140,
-    width: '100%',
-  },
-  coverOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.1,
-    backgroundColor: '#000',
-  },
-  profileCardWrapper: {
-    paddingHorizontal: 20,
-    marginTop: -60,
-  },
-  profileCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 24,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 8,
-  },
-  profileHeaderRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    gap: 16,
+  },
+  headerTitle: {
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.weights.semiBold,
+    color: Colors.textWhite,
+    marginBottom: Spacing.lg,
   },
   avatarContainer: {
     position: 'relative',
+    marginBottom: Spacing.md,
   },
-  avatarGradient: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  avatar: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(255,255,255,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: GastronomicColors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.4)',
   },
-  avatarInitials: {
-    color: '#FFF',
-    fontSize: 28,
-    fontWeight: 'bold',
+  avatarText: {
+    fontSize: Typography.sizes.xxxl,
+    fontWeight: Typography.weights.bold,
+    color: Colors.textWhite,
   },
-  cameraButton: {
+  editAvatar: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#FFF',
-    padding: 6,
+    width: 30,
+    height: 30,
     borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  nameRow: {
-    flexDirection: 'row',
+    backgroundColor: Colors.gradientStart,
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.textWhite,
   },
   userName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: GastronomicColors.textDark,
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.weights.bold,
+    color: Colors.textWhite,
   },
-  editButton: {
-    padding: 4,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
+  userEmail: {
+    fontSize: Typography.sizes.md,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
   },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
-  },
-  locationText: {
-    fontSize: 14,
-    color: GastronomicColors.textLight,
-  },
-  memberText: {
-    fontSize: 12,
-    color: GastronomicColors.textLight,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 16,
-    padding: 12,
-    justifyContent: 'space-between',
-  },
-  statBox: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: GastronomicColors.primary,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: GastronomicColors.textLight,
+  curve: {
+    height: 20,
+    backgroundColor: Colors.background,
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   section: {
-    paddingHorizontal: 20,
-    marginTop: 24,
-  },
-  emergencyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderRadius: 16,
-    shadowColor: '#ef4444',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 8,
-  },
-  emergencyContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  emergencyTitle: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  emergencySubtitle: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 14,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: GastronomicColors.textDark,
-    marginBottom: 12,
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.weights.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+    marginTop: Spacing.sm,
   },
   addButtonText: {
-    color: GastronomicColors.primary,
-    fontWeight: '500',
-    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: Typography.weights.bold,
+    fontSize: Typography.sizes.md,
   },
-  infoList: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    overflow: 'hidden',
-  },
-  infoItem: {
+  fieldRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 16,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: Colors.borderLight,
   },
-  infoTexts: {
+  fieldIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.primary + '12',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  fieldContent: {
     flex: 1,
   },
-  infoLabel: {
-    fontSize: 12,
-    color: GastronomicColors.textLight,
+  fieldLabel: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textLight,
+    marginBottom: 2,
   },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: GastronomicColors.textDark,
+  fieldValue: {
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.medium,
+    color: Colors.textPrimary,
   },
-  contactItem: {
+  contactCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 16,
+    backgroundColor: Colors.card,
+    padding: Spacing.md,
+    borderRadius: Spacing.borderRadius.lg,
+    marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
-    marginBottom: 12,
+    borderColor: Colors.borderLight,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  contactInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  contactIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ef444415',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   contactName: {
-    fontWeight: 'bold',
-    color: GastronomicColors.textDark,
-    fontSize: 16,
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.weights.bold,
+    color: Colors.textPrimary,
   },
   contactRelation: {
-    fontSize: 12,
-    color: GastronomicColors.textLight,
+    fontSize: Typography.sizes.sm,
+    color: Colors.textSecondary,
   },
   callButton: {
-    backgroundColor: GastronomicColors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: '#ef4444',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Spacing.borderRadius.full,
   },
   callButtonText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 14,
+    color: Colors.textWhite,
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.bold,
   },
-  insuranceCard: {
-    backgroundColor: '#eff6ff', // blue-50
-    borderWidth: 2,
-    borderColor: '#bfdbfe', // blue-200
-    borderRadius: 16,
-    padding: 16,
-  },
-  insuranceHeader: {
+  menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  insuranceProvider: {
-    fontWeight: 'bold',
-    color: GastronomicColors.textDark,
-    fontSize: 16,
-  },
-  insurancePolicy: {
-    fontSize: 12,
-    color: GastronomicColors.textLight,
-  },
-  insuranceCallButton: {
-    backgroundColor: '#2563eb', // blue-600
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
-  },
-  insuranceCallText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  documentItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: Colors.borderLight,
   },
-  documentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  documentName: {
-    fontWeight: '500',
-    color: GastronomicColors.textDark,
-    fontSize: 14,
-  },
-  documentStatus: {
-    fontSize: 12,
-    color: GastronomicColors.textLight,
-  },
-  documentAction: {
-    padding: 8,
-    backgroundColor: '#F8F9FA',
+  menuIcon: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
-  },
-  logoutSection: {
-    paddingHorizontal: 20,
-    marginTop: 24,
-    marginBottom: 20,
-  },
-  logoutButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#FFF',
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    paddingVertical: 16,
-    borderRadius: 16,
+    marginRight: Spacing.md,
   },
-  logoutText: {
-    fontWeight: '500',
-    color: GastronomicColors.textLight,
-    fontSize: 16,
-  },
-  modalOverlay: {
+  menuLabel: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    padding: 24,
-    minHeight: 400,
-  },
-  modalHandle: {
-    width: 48,
-    height: 6,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: GastronomicColors.textDark,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: GastronomicColors.textLight,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  servicesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    marginBottom: 24,
-  },
-  serviceButton: {
-    flex: 1,
-    minWidth: '45%',
-    padding: 20,
-    borderRadius: 20,
-    alignItems: 'center',
-  },
-  serviceIcon: {
-    fontSize: 32,
-    marginBottom: 12,
-  },
-  serviceName: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  servicePhone: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 12,
-    fontFamily: 'monospace',
-  },
-  modalCancelButton: {
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  modalCancelText: {
-    color: GastronomicColors.textLight,
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.weights.medium,
+    color: Colors.textPrimary,
   },
 });
