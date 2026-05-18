@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
-import { Home, Heart, User } from 'lucide-react-native';
+import { Home, Heart, User, Utensils } from 'lucide-react-native';
 import { GastronomicColors } from '@/constants/theme';
 
 export default function TabLayout() {

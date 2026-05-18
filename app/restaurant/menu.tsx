@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/colors';
 import { Spacing } from '@/constants/spacing';
 import { Typography } from '@/constants/typography';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface MenuItem {
   id: string;
@@ -15,6 +16,7 @@ interface MenuItem {
   image: any;
   rating: number;
   hasAR: boolean;
+  model:any;
 }
 
 const menuItems: MenuItem[] = [
@@ -26,6 +28,7 @@ const menuItems: MenuItem[] = [
     image: require('@/assets/images/food_soup.png'),
     rating: 4.9,
     hasAR: true,
+    model:require('@/assets/models/Untitled.glb')
   },
   {
     id: '2',
@@ -35,6 +38,7 @@ const menuItems: MenuItem[] = [
     image: require('@/assets/images/restaurant_banner.png'),
     rating: 4.8,
     hasAR: true,
+    model:require('@/assets/models/Untitled.glb')
   },
   {
     id: '3',
@@ -44,6 +48,7 @@ const menuItems: MenuItem[] = [
     image: require('@/assets/images/food_chicken.png'),
     rating: 4.5,
     hasAR: true,
+    model:''
   },
   {
     id: '4',
@@ -53,6 +58,7 @@ const menuItems: MenuItem[] = [
     image: require('@/assets/images/food_salmon.png'),
     rating: 4.7,
     hasAR: false,
+    model:''
   },
   {
     id: '5',
@@ -62,11 +68,24 @@ const menuItems: MenuItem[] = [
     image: require('@/assets/images/food_pizza.png'),
     rating: 4.6,
     hasAR: false,
+    model:''
   },
 ];
 
 export default function MenuScreen() {
   const router = useRouter();
+  const local = 'moldelRA'
+  const verRA = async (model : string)=>{
+    try {
+    await AsyncStorage.setItem(local, JSON.stringify(model));
+
+    console.log('Modelo guardado:', JSON.stringify(model));
+
+    router.push('/ar/instructions');
+  } catch (error) {
+    console.log('Error:', error);
+  }
+  }
 
   return (
     <View style={styles.container}>
@@ -119,7 +138,7 @@ export default function MenuScreen() {
                   </View>
                     <TouchableOpacity
                       style={styles.arBadge}
-                      onPress={() => router.push('/ar/instructions')}
+                      onPress={async() => await verRA(item.model)}
                     >
                       <Ionicons name="cube-outline" size={14} color={Colors.primary} />
                       <Text style={styles.arBadgeText}>Ver 3D</Text>
