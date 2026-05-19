@@ -1,5 +1,5 @@
 // Pantalla Home - Pantalla principal con diseño de TasteGo
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,17 @@ import { Typography } from '@/constants/typography';
 import SearchBar from '@/components/SearchBar';
 import RestaurantCard from '@/components/RestaurantCard';
 import CategoryIcon from '@/components/CategoryIcon';
+//imports necesarios para manejo de api y datos
+import { useBaseDeDatos } from "../../hooks/dataBase";
+import { useLocation } from "../../hooks/useLocation";
+import { useRestaurants, Restaurant } from "../../hooks/useRestaurants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getDistanceInMeters } from "../../hooks/distance";
+import{reverseGeocode } from "../../hooks/reverseGeocode"
+
+const LOCAL_KEY = "ubicacion";
+//---------------------------------------------------
+
 
 // Datos mock de restaurantes
 const popularRestaurants = [
@@ -91,6 +102,129 @@ const categories = [
 
 export default function HomeScreen() {
   const router = useRouter();
+  //Manejo de datos y api
+  const db = useBaseDeDatos();
+  const { location,error:error,loading:loadingLo } = useLocation();
+  const { restaurants,loading:loadingRe ,fetchRestaurants } = useRestaurants();
+  const [restaurante, setRestaurante] = useState<Restaurant[]>([]);//Donde se guardan los restaurantes para visualizar datos
+  const [lastFetchLocation, setLastFetchLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+
+  // 1. Al iniciar, cargar la BD y la última ubicación guardada
+  useEffect(() => {
+  const iniciarBD = async () => {
+    if (!db) return;
+
+    const result = await db.getAllAsync<Restaurant>(`
+      SELECT 
+        id_restaurante  AS id,
+        nombre          AS name,
+        descripcion     AS description,
+        tipo_comida     AS cuisine,
+        direccion       AS address,
+        ciudad,
+        latitud         AS latitude,
+        longitud        AS longitude,
+        imagen_url      AS image,
+        telefono        AS phone,
+        horario         AS openingHours,
+        fuente
+      FROM restaurantes
+    `);
+    setRestaurante(result);
+
+    const ubi = await AsyncStorage.getItem(LOCAL_KEY);
+    if (ubi) setLastFetchLocation(JSON.parse(ubi));
+  };
+  iniciarBD();
+}, [db]);// espera a que db esté listo
+
+  // 2. Cuando cambia la ubicación, verificar si hay que buscar restaurantes
+  useEffect(() => {
+    const verificarUbicacion = async () => {
+      if (!location) return;
+
+      if (!lastFetchLocation) {
+        fetchRestaurants(location.latitude, location.longitude);
+        setLastFetchLocation(location);
+        await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(location));
+        return;
+      }
+
+      const distance = getDistanceInMeters(
+        lastFetchLocation.latitude,
+        lastFetchLocation.longitude,
+        location.latitude,
+        location.longitude,
+      );
+
+      console.log("Distancia recorrida:", distance);
+
+      if (distance > 2000) {
+        fetchRestaurants(location.latitude, location.longitude);
+        setLastFetchLocation(location);
+        await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(location));
+      }
+    };
+
+    verificarUbicacion();
+  }, [location]);
+
+  // 3. Cuando llegan restaurantes de la API y la BD está lista, guardar y mostrar
+  useEffect(() => {
+    if (!db || restaurants.length === 0) return;
+    guardarRestaurants();
+  }, [db, restaurants]);
+
+  const guardarRestaurants = async () => {
+  if (!db || restaurants.length === 0) return;
+
+  for (const item of restaurants) {
+    const ub = await reverseGeocode(item.latitude,item.longitude)
+    await db.runAsync(
+      `INSERT OR IGNORE INTO restaurantes
+      (id_restaurante, nombre, descripcion, tipo_comida, direccion, ciudad,
+       latitud, longitud, imagen_url, telefono, horario, fuente)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [
+        item.id,
+        item.name,
+        item.description  ?? null,
+        item.cuisine      ?? null,
+        item.address      ?? ub?.displayName ?? null,
+        "",
+        item.latitude,
+        item.longitude,
+        item.image        ?? null,
+        item.phone        ?? null,
+        item.openingHours ?? null,
+        "api",
+      ]
+    );
+  }
+
+  // ✅ SELECT con alias correcto
+  const result = await db.getAllAsync<Restaurant>(`
+    SELECT 
+      id_restaurante  AS id,
+      nombre          AS name,
+      descripcion     AS description,
+      tipo_comida     AS cuisine,
+      direccion       AS address,
+      ciudad,
+      latitud         AS latitude,
+      longitud        AS longitude,
+      imagen_url      AS image,
+      telefono        AS phone,
+      horario         AS openingHours,
+      fuente
+    FROM restaurantes
+  `);
+  setRestaurante(result);
+};
+//------------------------------------------------------------
 
   return (
     <View style={styles.container}>
@@ -103,7 +237,7 @@ export default function HomeScreen() {
           </View>
           <TouchableOpacity
             style={styles.notifButton}
-            onPress={() => router.push('/notifications')}
+            onPress={() => router.push('./notifications')}
           >
             <Ionicons name="notifications-outline" size={24} color={Colors.textPrimary} />
             <View style={styles.notifBadge} />
@@ -111,7 +245,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Barra de búsqueda */}
-        <SearchBar onPress={() => router.push('/search')} editable={false} />
+        <SearchBar onPress={() => router.push('./search')} editable={false} />
 
         {/* Banner de oferta */}
         <TouchableOpacity style={styles.bannerContainer} activeOpacity={0.9}>

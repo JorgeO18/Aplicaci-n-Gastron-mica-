@@ -24,6 +24,8 @@ export default function RootLayout() {
         <Stack.Screen name="restaurant/route" options={{ headerShown: false }} />
         <Stack.Screen name="ar/instructions" options={{ headerShown: false }} />
         <Stack.Screen name="ar/view" options={{ headerShown: false }} />
+        <Stack.Screen name="MapView" options={{ headerShown: false }} />
+        <Stack.Screen name="rarv" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
