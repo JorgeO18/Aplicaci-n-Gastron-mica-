@@ -5,6 +5,7 @@ import { useLocalSearchParams } from 'expo-router';
 
 export default function App() {
     const {id} = useLocalSearchParams()
+    
   return (
     <View style={styles.container}>
       <StatusBar style="light" backgroundColor="#1F4E79" />

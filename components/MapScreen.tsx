@@ -178,6 +178,7 @@ export default function MapScreen({
     fetchRoute,
     clearRoute,
   } = useRoute();
+  
 
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<Restaurant | null>(null);
@@ -220,13 +221,13 @@ export default function MapScreen({
 
   useEffect(() => {
     if (restaurante.length === 0) return;
-    if (!location && !ubicacion) return;
+    
 
     // Buscar por id, no por índice
     const defaultRestaurant = restaurante.find((r) => r.id === String(resId));
     if (!defaultRestaurant) return;
 
-    const currentLocation = ubicacion ?? location;
+    const currentLocation = location;
     if (!currentLocation) return;
 
     setSelectedRestaurant(defaultRestaurant);
@@ -254,6 +255,7 @@ export default function MapScreen({
         JSON.stringify({ type: "DRAW_ROUTE", coords }),
       );
     }
+    console.log(routeCoords)
   }, [routeCoords]);
 
   const handleWebViewMessage = (event: any): void => {

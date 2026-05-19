@@ -9,9 +9,9 @@ import { Typography } from '../constants/typography';
 interface RestaurantCardProps {
   name: string;
   image: ImageSourcePropType;
-  rating: number;
-  distance: string;
-  deliveryTime: string;
+  // rating: number;
+  // distance: string;
+  // deliveryTime: string;
   cuisine: string;
   onPress?: () => void;
   variant?: 'horizontal' | 'vertical';
@@ -21,9 +21,9 @@ interface RestaurantCardProps {
 export default function RestaurantCard({
   name,
   image,
-  rating,
-  distance,
-  deliveryTime,
+  // rating,
+  // distance,
+  // deliveryTime,
   cuisine,
   onPress,
   variant = 'vertical',
@@ -37,7 +37,7 @@ export default function RestaurantCard({
           <Text style={styles.name} numberOfLines={1}>{name}</Text>
           <Text style={styles.cuisine}>{cuisine}</Text>
           <View style={styles.statsRow}>
-            <View style={styles.stat}>
+            {/* <View style={styles.stat}>
               <Ionicons name="star" size={14} color="#FFB800" />
               <Text style={styles.statText}>{rating}</Text>
             </View>
@@ -47,8 +47,8 @@ export default function RestaurantCard({
             </View>
             <View style={styles.stat}>
               <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
-              <Text style={styles.statText}>{deliveryTime}</Text>
-            </View>
+              <Text style={styles.statText}>{deliveryTime}</Text> 
+            </View>*/}
           </View>
         </View>
       </TouchableOpacity>
@@ -72,7 +72,7 @@ export default function RestaurantCard({
         <Text style={styles.name} numberOfLines={1}>{name}</Text>
         <Text style={styles.cuisine}>{cuisine}</Text>
         <View style={styles.statsRow}>
-          <View style={styles.stat}>
+          {/* <View style={styles.stat}>
             <Ionicons name="star" size={14} color="#FFB800" />
             <Text style={styles.statText}>{rating}</Text>
           </View>
@@ -85,7 +85,7 @@ export default function RestaurantCard({
           <View style={styles.stat}>
             <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
             <Text style={styles.statText}>{distance}</Text>
-          </View>
+          </View> */}
         </View>
       </View>
     </TouchableOpacity>

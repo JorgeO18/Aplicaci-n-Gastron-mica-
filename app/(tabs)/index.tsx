@@ -25,7 +25,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getDistanceInMeters } from "../../hooks/distance";
 import{reverseGeocode } from "../../hooks/reverseGeocode"
 
-const LOCAL_KEY = "ubicacion";
+const LOCAL_KEY = "ubicacionUsuario";
 //---------------------------------------------------
 
 
@@ -137,6 +137,7 @@ export default function HomeScreen() {
 
     const ubi = await AsyncStorage.getItem(LOCAL_KEY);
     if (ubi) setLastFetchLocation(JSON.parse(ubi));
+    
   };
   iniciarBD();
 }, [db]);// espera a que db esté listo
@@ -179,33 +180,49 @@ export default function HomeScreen() {
   }, [db, restaurants]);
 
   const guardarRestaurants = async () => {
-  if (!db || restaurants.length === 0) return;
-
-  for (const item of restaurants) {
-    const ub = await reverseGeocode(item.latitude,item.longitude)
-    await db.runAsync(
-      `INSERT OR IGNORE INTO restaurantes
-      (id_restaurante, nombre, descripcion, tipo_comida, direccion, ciudad,
-       latitud, longitud, imagen_url, telefono, horario, fuente)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [
-        item.id,
-        item.name,
-        item.description  ?? null,
-        item.cuisine      ?? null,
-        item.address      ?? ub?.displayName ?? null,
-        "",
-        item.latitude,
-        item.longitude,
-        item.image        ?? null,
-        item.phone        ?? null,
-        item.openingHours ?? null,
-        "api",
-      ]
-    );
+  if (!db || restaurants.length === 0) {
+    console.log("⛔ guardarRestaurants abortado:", { db: !!db, count: restaurants.length });
+    return;
   }
 
-  // ✅ SELECT con alias correcto
+  console.log(`📦 Intentando guardar ${restaurants.length} restaurantes...`);
+
+  for (const item of restaurants) {
+    try {
+      let displayName = null;
+      try {
+        const ub = await reverseGeocode(item.latitude, item.longitude);
+        displayName = ub?.displayName ?? null;
+      } catch (geoErr) {
+        console.warn("⚠️ reverseGeocode falló para:", item.id, geoErr);
+      }
+
+      await db.runAsync(
+        `INSERT OR REPLACE INTO restaurantes
+        (id_restaurante, nombre, descripcion, tipo_comida, direccion, ciudad,
+         latitud, longitud, imagen_url, telefono, horario, fuente)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [
+          item.id,
+          item.name,
+          item.description  ?? null,
+          item.cuisine      ?? null,
+          item.address      ?? displayName ?? null,
+          "",
+          item.latitude,
+          item.longitude,
+          item.image        ?? null,
+          item.phone        ?? null,
+          item.openingHours ?? null,
+          "api",
+        ]
+      );
+      console.log("✅ Guardado:", item.name);
+    } catch (err) {
+      console.error("❌ Error guardando restaurante:", item.id, err);
+    }
+  }
+
   const result = await db.getAllAsync<Restaurant>(`
     SELECT 
       id_restaurante  AS id,
@@ -222,6 +239,8 @@ export default function HomeScreen() {
       fuente
     FROM restaurantes
   `);
+
+  console.log(`🍽️ Total en BD después de guardar: ${result.length}`);
   setRestaurante(result);
 };
 //------------------------------------------------------------
@@ -301,9 +320,9 @@ export default function HomeScreen() {
                 key={restaurant.id}
                 name={restaurant.name}
                 image={restaurant.image}
-                rating={restaurant.rating}
-                distance={restaurant.distance}
-                deliveryTime={restaurant.deliveryTime}
+                // rating={restaurant.rating}
+                // distance={restaurant.distance}
+                // deliveryTime={restaurant.deliveryTime}
                 cuisine={restaurant.cuisine}
                 discount={restaurant.discount}
                 onPress={() => router.push(`/restaurant/${restaurant.id}`)}
@@ -320,15 +339,15 @@ export default function HomeScreen() {
               <Text style={styles.seeAll}>Ver todo</Text>
             </TouchableOpacity>
           </View>
-          {moreRestaurants.map((restaurant) => (
+          {restaurante.map((restaurant) => (
             <RestaurantCard
               key={restaurant.id}
               name={restaurant.name}
-              image={restaurant.image}
-              rating={restaurant.rating}
-              distance={restaurant.distance}
-              deliveryTime={restaurant.deliveryTime}
-              cuisine={restaurant.cuisine}
+              image={require('../../assets/images/restaurant_banner.png')}
+              // rating={restaurant.rating}
+              // distance={restaurant.distance}
+              // deliveryTime={restaurant.deliveryTime}
+              cuisine={restaurant.cuisine ?? ''}
               variant="horizontal"
               onPress={() => router.push(`/restaurant/${restaurant.id}`)}
             />

@@ -1,5 +1,5 @@
 // Pantalla Detalle de Restaurante - Diseño TasteGo
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,11 +17,41 @@ import { Spacing } from '@/constants/spacing';
 import { Typography } from '@/constants/typography';
 import GradientButton from '@/components/GradientButton';
 
+import {Restaurant} from "../../hooks/useRestaurants";
+import { useBaseDeDatos } from "../../hooks/dataBase";
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function RestaurantDetailScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const db = useBaseDeDatos();
+  const [restaurante, setRestaurante] = useState<Restaurant[]>([]);
+  
+
+  useEffect(() => {
+    const iniciarBD = async () => {
+      if (!db) return;
+      const result = await db.getAllAsync<Restaurant>(`
+    SELECT 
+      id_restaurante  AS id,
+      nombre          AS name,
+      descripcion     AS description,
+      tipo_comida     AS cuisine,
+      direccion       AS address,
+      ciudad,
+      latitud         AS latitude,
+      longitud        AS longitude,
+      imagen_url      AS image,
+      telefono        AS phone,
+      horario         AS openingHours,
+      fuente
+    FROM restaurantes WHERE id_restaurante = ?
+  `, [id]); 
+      setRestaurante(result);
+    };
+    iniciarBD();
+  }, [db]);
 
   return (
     <View style={styles.container}>
@@ -58,8 +88,8 @@ export default function RestaurantDetailScreen() {
           {/* Nombre y rating */}
           <View style={styles.nameRow}>
             <View style={styles.nameContainer}>
-              <Text style={styles.restaurantName}>Sabor & Fuego</Text>
-              <Text style={styles.cuisine}>Parrilla • Latina • Gourmet</Text>
+              <Text style={styles.restaurantName}>{restaurante[0]?.name}</Text>
+              <Text style={styles.cuisine}>{restaurante[0]?.cuisine ?? ''}</Text>
             </View>
             <View style={styles.ratingBadge}>
               <Ionicons name="star" size={16} color="#FFB800" />
@@ -95,7 +125,7 @@ export default function RestaurantDetailScreen() {
               </View>
               <View>
                 <Text style={styles.statValue}>Abierto</Text>
-                <Text style={styles.statLabel}>9am - 10pm</Text>
+                <Text style={styles.statLabel}>{restaurante[0]?.openingHours}</Text>
               </View>
             </View>
           </View>
@@ -157,7 +187,7 @@ export default function RestaurantDetailScreen() {
         />
         <GradientButton
           title="Iniciar ruta"
-          onPress={() => router.push('/restaurant/route')}
+          onPress={() => router.push({pathname:'../MapView', params:{id:id}})}
           variant="outline"
           style={styles.routeButton}
         />
