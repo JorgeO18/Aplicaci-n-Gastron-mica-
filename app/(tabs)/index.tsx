@@ -1,112 +1,107 @@
 // Pantalla Home - Pantalla principal con diseño de TasteGo
-import React, { useEffect, useState } from 'react';
+import CategoryIcon from "@/components/CategoryIcon";
+import RestaurantCard from "@/components/RestaurantCard";
+import SearchBar from "@/components/SearchBar";
+import { Colors } from "@/constants/colors";
+import { Spacing } from "@/constants/spacing";
+import { Typography } from "@/constants/typography";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   Image,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '@/constants/colors';
-import { Spacing } from '@/constants/spacing';
-import { Typography } from '@/constants/typography';
-import SearchBar from '@/components/SearchBar';
-import RestaurantCard from '@/components/RestaurantCard';
-import CategoryIcon from '@/components/CategoryIcon';
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+} from "react-native";
 //imports necesarios para manejo de api y datos
-import { useBaseDeDatos } from "../../hooks/dataBase";
-import { useLocation } from "../../hooks/useLocation";
-import { useRestaurants, Restaurant } from "../../hooks/useRestaurants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useBaseDeDatos } from "../../hooks/dataBase";
 import { getDistanceInMeters } from "../../hooks/distance";
-import{reverseGeocode } from "../../hooks/reverseGeocode"
+import { reverseGeocode } from "../../hooks/reverseGeocode";
+import { useLocation } from "../../hooks/useLocation";
+import { Restaurant, useRestaurants } from "../../hooks/useRestaurants";
 
 const LOCAL_KEY = "ubicacionUsuario";
 //---------------------------------------------------
 
-
 // Datos mock de restaurantes
 const popularRestaurants = [
   {
-    id: '1',
-    name: 'Sabor & Fuego',
-    image: require('../../assets/images/restaurant_banner.png'),
+    id: "1",
+    name: "Sabor & Fuego",
+    image: require("../../assets/images/restaurant_banner.png"),
     rating: 4.8,
-    distance: '1.2 km',
-    deliveryTime: '25 min',
-    cuisine: 'Parrilla • Latina',
-    discount: '15% OFF',
+    distance: "1.2 km",
+    deliveryTime: "25 min",
+    cuisine: "Parrilla • Latina",
+    discount: "15% OFF",
   },
   {
-    id: '2',
-    name: 'Pizza Hot',
-    image: require('../../assets/images/food_pizza.png'),
+    id: "2",
+    name: "Pizza Hot",
+    image: require("../../assets/images/food_pizza.png"),
     rating: 4.5,
-    distance: '0.8 km',
-    deliveryTime: '20 min',
-    cuisine: 'Pizzería • Italiana',
+    distance: "0.8 km",
+    deliveryTime: "20 min",
+    cuisine: "Pizzería • Italiana",
   },
   {
-    id: '3',
-    name: 'Sushi Master',
-    image: require('../../assets/images/food_salmon.png'),
+    id: "3",
+    name: "Sushi Master",
+    image: require("../../assets/images/food_salmon.png"),
     rating: 4.7,
-    distance: '2.1 km',
-    deliveryTime: '35 min',
-    cuisine: 'Japonesa • Sushi',
+    distance: "2.1 km",
+    deliveryTime: "35 min",
+    cuisine: "Japonesa • Sushi",
   },
 ];
 
 const moreRestaurants = [
   {
-    id: '4',
-    name: 'El Buen Gusto',
-    image: require('../../assets/images/food_soup.png'),
+    id: "4",
+    name: "El Buen Gusto",
+    image: require("../../assets/images/food_soup.png"),
     rating: 4.3,
-    distance: '0.5 km',
-    deliveryTime: '15 min',
-    cuisine: 'Casera • Sopas',
+    distance: "0.5 km",
+    deliveryTime: "15 min",
+    cuisine: "Casera • Sopas",
   },
   {
-    id: '5',
-    name: 'Chicken House',
-    image: require('../../assets/images/food_chicken.png'),
+    id: "5",
+    name: "Chicken House",
+    image: require("../../assets/images/food_chicken.png"),
     rating: 4.6,
-    distance: '1.8 km',
-    deliveryTime: '30 min',
-    cuisine: 'Pollo • Americana',
+    distance: "1.8 km",
+    deliveryTime: "30 min",
+    cuisine: "Pollo • Americana",
   },
   {
-    id: '6',
-    name: 'La Trattoria',
-    image: require('../../assets/images/food_pizza.png'),
+    id: "6",
+    name: "La Trattoria",
+    image: require("../../assets/images/food_pizza.png"),
     rating: 4.4,
-    distance: '1.0 km',
-    deliveryTime: '25 min',
-    cuisine: 'Italiana • Pastas',
+    distance: "1.0 km",
+    deliveryTime: "25 min",
+    cuisine: "Italiana • Pastas",
   },
-];
-
-const categories = [
-  { name: 'Todo', icon: 'grid-outline' as const, isActive: true },
-  { name: 'Pizza', icon: 'pizza-outline' as const },
-  { name: 'Burger', icon: 'fast-food-outline' as const },
-  { name: 'Sushi', icon: 'fish-outline' as const },
-  { name: 'Pollo', icon: 'restaurant-outline' as const },
-  { name: 'Postre', icon: 'ice-cream-outline' as const },
 ];
 
 export default function HomeScreen() {
   const router = useRouter();
   //Manejo de datos y api
   const db = useBaseDeDatos();
-  const { location,error:error,loading:loadingLo } = useLocation();
-  const { restaurants,loading:loadingRe ,fetchRestaurants } = useRestaurants();
-  const [restaurante, setRestaurante] = useState<Restaurant[]>([]);//Donde se guardan los restaurantes para visualizar datos
+  const { location, error: error, loading: loadingLo } = useLocation();
+  const {
+    restaurants,
+    loading: loadingRe,// varibale de la carga de restaurantes 
+    fetchRestaurants,
+  } = useRestaurants();
+  const [restaurante, setRestaurante] = useState<Restaurant[]>([]); //Donde se guardan los restaurantes para visualizar datos
   const [lastFetchLocation, setLastFetchLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -114,10 +109,10 @@ export default function HomeScreen() {
 
   // 1. Al iniciar, cargar la BD y la última ubicación guardada
   useEffect(() => {
-  const iniciarBD = async () => {
-    if (!db) return;
+    const iniciarBD = async () => {
+      if (!db) return;
 
-    const result = await db.getAllAsync<Restaurant>(`
+      const result = await db.getAllAsync<Restaurant>(`
       SELECT 
         id_restaurante  AS id,
         nombre          AS name,
@@ -133,14 +128,13 @@ export default function HomeScreen() {
         fuente
       FROM restaurantes
     `);
-    setRestaurante(result);
+      setRestaurante(result);
 
-    const ubi = await AsyncStorage.getItem(LOCAL_KEY);
-    if (ubi) setLastFetchLocation(JSON.parse(ubi));
-    
-  };
-  iniciarBD();
-}, [db]);// espera a que db esté listo
+      const ubi = await AsyncStorage.getItem(LOCAL_KEY);
+      if (ubi) setLastFetchLocation(JSON.parse(ubi));
+    };
+    iniciarBD();
+  }, [db]); // espera a que db esté listo
 
   // 2. Cuando cambia la ubicación, verificar si hay que buscar restaurantes
   useEffect(() => {
@@ -180,50 +174,53 @@ export default function HomeScreen() {
   }, [db, restaurants]);
 
   const guardarRestaurants = async () => {
-  if (!db || restaurants.length === 0) {
-    console.log("⛔ guardarRestaurants abortado:", { db: !!db, count: restaurants.length });
-    return;
-  }
+    if (!db || restaurants.length === 0) {
+      console.log("⛔ guardarRestaurants abortado:", {
+        db: !!db,
+        count: restaurants.length,
+      });
+      return;
+    }
 
-  console.log(`📦 Intentando guardar ${restaurants.length} restaurantes...`);
+    console.log(`📦 Intentando guardar ${restaurants.length} restaurantes...`);
 
-  for (const item of restaurants) {
-    try {
-      let displayName = null;
+    for (const item of restaurants) {
       try {
-        const ub = await reverseGeocode(item.latitude, item.longitude);
-        displayName = ub?.displayName ?? null;
-      } catch (geoErr) {
-        console.warn("⚠️ reverseGeocode falló para:", item.id, geoErr);
-      }
+        let displayName = null;
+        try {
+          const ub = await reverseGeocode(item.latitude, item.longitude);
+          displayName = ub?.displayName ?? null;
+        } catch (geoErr) {
+          console.warn("⚠️ reverseGeocode falló para:", item.id, geoErr);
+        }
 
-      await db.runAsync(
-        `INSERT OR REPLACE INTO restaurantes
+        await db.runAsync(
+          `INSERT OR REPLACE INTO restaurantes
         (id_restaurante, nombre, descripcion, tipo_comida, direccion, ciudad,
          latitud, longitud, imagen_url, telefono, horario, fuente)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-        [
-          item.id,
-          item.name,
-          item.description  ?? null,
-          item.cuisine      ?? null,
-          item.address      ?? displayName ?? null,
-          "",
-          item.latitude,
-          item.longitude,
-          item.image        ?? null,
-          item.phone        ?? null,
-          item.openingHours ?? null,
-          "api",
-        ]
-      );
-      console.log("✅ Guardado:", item.name);
-    } catch (err) {
-      console.error("❌ Error guardando restaurante:", item.id, err);
+          [
+            item.id,
+            item.name,
+            item.description ?? null,
+            item.cuisine ?? null,
+            item.address ?? displayName ?? null,
+            "",
+            item.latitude,
+            item.longitude,
+            item.image ?? null,
+            item.phone ?? null,
+            item.openingHours ?? null,
+            "api",
+          ],
+        );
+        console.log("✅ Guardado:", item.name);
+      } catch (err) {
+        console.error("❌ Error guardando restaurante:", item.id, err);
+      }
     }
-  }
 
-  const result = await db.getAllAsync<Restaurant>(`
+    const result = await db.getAllAsync<Restaurant>(`
     SELECT 
       id_restaurante  AS id,
       nombre          AS name,
@@ -240,31 +237,38 @@ export default function HomeScreen() {
     FROM restaurantes
   `);
 
-  console.log(`🍽️ Total en BD después de guardar: ${result.length}`);
-  setRestaurante(result);
-};
-//------------------------------------------------------------
+    console.log(`🍽️ Total en BD después de guardar: ${result.length}`);
+    setRestaurante(result);
+  };
+  //------------------------------------------------------------
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>¡Hola, José! 👋</Text>
+            <Text style={styles.greeting}>¡Hola, Jorge 👋</Text>
             <Text style={styles.subtitle}>¿Qué quieres comer hoy?</Text>
           </View>
           <TouchableOpacity
             style={styles.notifButton}
-            onPress={() => router.push('./notifications')}
+            onPress={() => router.push("./notifications")}
           >
-            <Ionicons name="notifications-outline" size={24} color={Colors.textPrimary} />
+            <Ionicons
+              name="notifications-outline"
+              size={24}
+              color={Colors.textPrimary}
+            />
             <View style={styles.notifBadge} />
           </TouchableOpacity>
         </View>
 
         {/* Barra de búsqueda */}
-        <SearchBar onPress={() => router.push('./search')} editable={false} />
+        <SearchBar onPress={() => router.push("./search")} editable={false} />
 
         {/* Banner de oferta */}
         <TouchableOpacity style={styles.bannerContainer} activeOpacity={0.9}>
@@ -279,12 +283,16 @@ export default function HomeScreen() {
                 <View style={styles.discountBadge}>
                   <Text style={styles.discountBadgeText}>15% OFF</Text>
                 </View>
-                <Text style={styles.bannerTitle}>Oferta especial{'\n'}de hoy</Text>
-                <Text style={styles.bannerSubtitle}>En restaurantes seleccionados</Text>
+                <Text style={styles.bannerTitle}>
+                  Oferta especial{"\n"}de hoy
+                </Text>
+                <Text style={styles.bannerSubtitle}>
+                  En restaurantes seleccionados
+                </Text>
               </View>
               <View style={styles.bannerImageContainer}>
                 <Image
-                  source={require('../../assets/images/restaurant_banner.png')}
+                  source={require("../../assets/images/restaurant_banner.png")}
                   style={styles.bannerImage}
                 />
               </View>
@@ -292,19 +300,7 @@ export default function HomeScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Categorías */}
-        <View style={styles.section}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {categories.map((cat, index) => (
-              <CategoryIcon
-                key={index}
-                name={cat.name}
-                icon={cat.icon}
-                isActive={cat.isActive}
-              />
-            ))}
-          </ScrollView>
-        </View>
+       
 
         {/* Los más visitados */}
         <View style={styles.section}>
@@ -339,19 +335,38 @@ export default function HomeScreen() {
               <Text style={styles.seeAll}>Ver todo</Text>
             </TouchableOpacity>
           </View>
-          {restaurante.map((restaurant) => (
-            <RestaurantCard
-              key={restaurant.id}
-              name={restaurant.name}
-              image={require('../../assets/images/restaurant_banner.png')}
-              // rating={restaurant.rating}
-              // distance={restaurant.distance}
-              // deliveryTime={restaurant.deliveryTime}
-              cuisine={restaurant.cuisine ?? ''}
-              variant="horizontal"
-              onPress={() => router.push(`/restaurant/${restaurant.id}`)}
-            />
-          ))}
+
+{/* PREGUNTA (Condición): 
+// ¿La variable loadingRe dice que la base de datos está cargando 
+// O (||) el arreglo de 'restaurante' todavía está vacío (longitud === 0)?*/}
+
+          {loadingRe || restaurante.length === 0 ? (
+ // RESPUESTA AFIRMATIVA (Si se cumple alguna de las dos):
+  // Dibuja en la pantalla el ActivityIndicator (El circulito dando vueltas)
+            
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.loaderText}>Buscando restaurantes...</Text>
+            </View>
+          ) : (
+            
+ // RESPUESTA NEGATIVA (Si ninguna de las dos se cumple): 
+ // Empieza a dibujar la lista real de restaurantes usando .map()
+
+            restaurante.map((restaurant) => (
+              <RestaurantCard
+                key={restaurant.id}
+                name={restaurant.name}
+                image={require("../../assets/images/restaurant_banner.png")}
+                // rating={restaurant.rating}
+                // distance={restaurant.distance}
+                // deliveryTime={restaurant.deliveryTime}
+                cuisine={restaurant.cuisine ?? ""}
+                variant="horizontal"
+                onPress={() => router.push(`/restaurant/${restaurant.id}`)}
+              />
+            ))
+          )}
         </View>
       </ScrollView>
     </View>
@@ -369,9 +384,9 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxl,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: Spacing.lg,
   },
   greeting: {
@@ -389,12 +404,12 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     backgroundColor: Colors.backgroundGray,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
   },
   notifBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 10,
     right: 12,
     width: 8,
@@ -407,25 +422,25 @@ const styles = StyleSheet.create({
   bannerContainer: {
     marginTop: Spacing.lg,
     borderRadius: Spacing.borderRadius.xl,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   banner: {
     borderRadius: Spacing.borderRadius.xl,
     padding: Spacing.lg,
   },
   bannerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   bannerTextContainer: {
     flex: 1,
   },
   discountBadge: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: "rgba(255,255,255,0.25)",
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Spacing.borderRadius.sm,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: Spacing.sm,
   },
   discountBadgeText: {
@@ -442,28 +457,28 @@ const styles = StyleSheet.create({
   },
   bannerSubtitle: {
     fontSize: Typography.sizes.sm,
-    color: 'rgba(255,255,255,0.8)',
+    color: "rgba(255,255,255,0.8)",
   },
   bannerImageContainer: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginLeft: Spacing.md,
     borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: "rgba(255,255,255,0.3)",
   },
   bannerImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   section: {
     marginTop: Spacing.xl,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: Spacing.md,
   },
   sectionTitle: {
@@ -475,5 +490,15 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.md,
     color: Colors.primary,
     fontWeight: Typography.weights.medium,
+  },
+  loaderContainer: {
+    padding: Spacing.xl,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loaderText: {
+    marginTop: Spacing.md,
+    color: Colors.textSecondary,
+    fontSize: Typography.sizes.md,
   },
 });
