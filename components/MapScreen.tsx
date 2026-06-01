@@ -14,7 +14,7 @@ import { useLocation } from "../hooks/useLocation";
 import { useRestaurants, Restaurant } from "../hooks/useRestaurants";
 import { useRoute } from "../hooks/useRoute";
 import { useBaseDeDatos } from "../hooks/dataBase";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 const COLORS = {
   primary: "#1F4E79",
@@ -160,7 +160,7 @@ function buildLeafletHTML(
 </html>
   `;
 }
-const LOCAL_KEY = "ubicacion";
+
 
 export default function MapScreen({
   resId,
@@ -169,7 +169,7 @@ export default function MapScreen({
 }): React.JSX.Element {
   const webViewRef = useRef<WebView>(null);
   const { location, error: locError, loading: locLoading } = useLocation();
-  const { restaurants, fetchRestaurants } = useRestaurants();
+  
   const {
     routeCoords,
     routeInfo,
@@ -178,23 +178,17 @@ export default function MapScreen({
     fetchRoute,
     clearRoute,
   } = useRoute();
-  
-
-  const [selectedRestaurant, setSelectedRestaurant] =
-    useState<Restaurant | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [panelAnim] = useState(new Animated.Value(0));
   const [mapReady, setMapReady] = useState(false);
 
-  const db = useBaseDeDatos();
+  const { db, isReady, error } = useBaseDeDatos();
   const [restaurante, setRestaurante] = useState<Restaurant[]>([]);
-  const [ubicacion, setUbicacion] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
+ 
 
   useEffect(() => {
     const iniciarBD = async () => {
-      if (!db) return;
+      if (!isReady || !db) return;
       const result = await db.getAllAsync<Restaurant>(`
     SELECT 
       id_restaurante  AS id,
@@ -213,30 +207,48 @@ export default function MapScreen({
   `);
       setRestaurante(result);
 
-      const ubi = await AsyncStorage.getItem(LOCAL_KEY);
-      if (ubi) setUbicacion(JSON.parse(ubi));
+      
     };
     iniciarBD();
   }, [db]);
 
   useEffect(() => {
-    if (restaurante.length === 0) return;
     
+    if (restaurante.length === 0) return;
+    if (!location) return;
+    try {
+      
+      // Buscar por id, no por índice
+      const defaultRestaurant = restaurante.find((r) => r.id === String(resId));
+      if (!defaultRestaurant) return;
+  
+      
+      const currentLocation = location;
+      if (!currentLocation) return;
+  
+      setSelectedRestaurant(defaultRestaurant);
+      
+  
+      fetchRoute(currentLocation, {
+        latitude: defaultRestaurant.latitude,
+        longitude: defaultRestaurant.longitude,
+      });
+    } catch (error) {
+      console.log(error)
+    }
 
-    // Buscar por id, no por índice
-    const defaultRestaurant = restaurante.find((r) => r.id === String(resId));
-    if (!defaultRestaurant) return;
+  }, [restaurante, location]);
 
-    const currentLocation = location;
-    if (!currentLocation) return;
-
-    setSelectedRestaurant(defaultRestaurant);
-
-    fetchRoute(currentLocation, {
-      latitude: defaultRestaurant.latitude,
-      longitude: defaultRestaurant.longitude,
-    });
-  }, [restaurante, ubicacion]);
+   // Enviar ruta al WebView cuando se calcula
+  useEffect(() => {
+    if (routeCoords.length > 0 && webViewRef.current) {
+      const coords = routeCoords.map((c) => [c.latitude, c.longitude]);
+      webViewRef.current.postMessage(
+        JSON.stringify({ type: "DRAW_ROUTE", coords }),
+      );
+    }
+    
+  }, [routeCoords]);
 
   useEffect(() => {
     Animated.spring(panelAnim, {
@@ -247,16 +259,7 @@ export default function MapScreen({
     }).start();
   }, [selectedRestaurant]);
 
-  // Enviar ruta al WebView cuando se calcula
-  useEffect(() => {
-    if (routeCoords.length > 0 && webViewRef.current) {
-      const coords = routeCoords.map((c) => [c.latitude, c.longitude]);
-      webViewRef.current.postMessage(
-        JSON.stringify({ type: "DRAW_ROUTE", coords }),
-      );
-    }
-    console.log(routeCoords)
-  }, [routeCoords]);
+ 
 
   const handleWebViewMessage = (event: any): void => {
     try {

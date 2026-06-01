@@ -25,13 +25,13 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function RestaurantDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const db = useBaseDeDatos();
+  const { db, isReady } = useBaseDeDatos();
   const [restaurante, setRestaurante] = useState<Restaurant[]>([]);
   
 
   useEffect(() => {
     const iniciarBD = async () => {
-      if (!db) return;
+      if (!isReady || !db) return;
       const result = await db.getAllAsync<Restaurant>(`
     SELECT 
       id_restaurante  AS id,
@@ -78,7 +78,7 @@ export default function RestaurantDetailScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.circleButton}>
                 <Ionicons name="heart-outline" size={22} color={Colors.textWhite} />
-              </TouchableOpacity>
+              </TouchableOpacity>{/*Favoritos boton */}
             </View>
           </View>
         </View>
@@ -182,12 +182,12 @@ export default function RestaurantDetailScreen() {
       <View style={styles.bottomBar}>
         <GradientButton
           title="Ver platos completos"
-          onPress={() => router.push('/restaurant/menu')}
+          onPress={() => router.push({pathname: '/restaurant/menu', params:{idRes:id}})}
           style={styles.viewMenuButton}
         />
         <GradientButton
           title="Iniciar ruta"
-          onPress={() => router.push({pathname:'../MapView', params:{id:id}})}
+          onPress={() => router.push({pathname:'../MapView', params:{idRes:id}})}
           variant="outline"
           style={styles.routeButton}
         />

@@ -39,6 +39,7 @@ export function useRestaurants(): UseRestaurantsResult {
     `;
 
     try {
+      console.log('consultando')
       const response = await fetch(OVERPASS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -68,7 +69,7 @@ export function useRestaurants(): UseRestaurantsResult {
           openingHours: el.tags?.opening_hours ?? null,
           
         }));
-        
+        console.log('consultado..')
       setRestaurants(results);
       
     } catch (err) {

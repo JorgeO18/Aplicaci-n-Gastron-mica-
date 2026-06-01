@@ -8,7 +8,7 @@ import { Typography } from "@/constants/typography";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -20,7 +20,7 @@ import {
 } from "react-native";
 //imports necesarios para manejo de api y datos
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useBaseDeDatos } from "../../hooks/dataBase";
+import { useBaseDeDatos , Usuarios } from "../../hooks/dataBase";
 import { getDistanceInMeters } from "../../hooks/distance";
 import { reverseGeocode } from "../../hooks/reverseGeocode";
 import { useLocation } from "../../hooks/useLocation";
@@ -61,56 +61,35 @@ const popularRestaurants = [
   },
 ];
 
-const moreRestaurants = [
-  {
-    id: "4",
-    name: "El Buen Gusto",
-    image: require("../../assets/images/food_soup.png"),
-    rating: 4.3,
-    distance: "0.5 km",
-    deliveryTime: "15 min",
-    cuisine: "Casera • Sopas",
-  },
-  {
-    id: "5",
-    name: "Chicken House",
-    image: require("../../assets/images/food_chicken.png"),
-    rating: 4.6,
-    distance: "1.8 km",
-    deliveryTime: "30 min",
-    cuisine: "Pollo • Americana",
-  },
-  {
-    id: "6",
-    name: "La Trattoria",
-    image: require("../../assets/images/food_pizza.png"),
-    rating: 4.4,
-    distance: "1.0 km",
-    deliveryTime: "25 min",
-    cuisine: "Italiana • Pastas",
-  },
-];
-
 export default function HomeScreen() {
   const router = useRouter();
   //Manejo de datos y api
-  const db = useBaseDeDatos();
-  const { location, error: error, loading: loadingLo } = useLocation();
+  const { db, isReady, insertarDemos } = useBaseDeDatos();
+  const localSesion = 'sesion'
+  const [user, setUser] = useState<Usuarios | null>(null)
+  const { location, error: errorlo, loading: loadingLo } = useLocation();
   const {
     restaurants,
-    loading: loadingRe,// varibale de la carga de restaurantes 
+    loading: loadingRe, // varibale de la carga de restaurantes
     fetchRestaurants,
   } = useRestaurants();
   const [restaurante, setRestaurante] = useState<Restaurant[]>([]); //Donde se guardan los restaurantes para visualizar datos
-  const [lastFetchLocation, setLastFetchLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
+  const lastFetchRef = useRef<{ latitude: number; longitude: number } | null>(
+    null,
+  );
+  const bdCargadaRef = useRef(false); // ← nuevo flag
 
-  // 1. Al iniciar, cargar la BD y la última ubicación guardada
+  // 1. Cargar BD y última ubicación guardada
   useEffect(() => {
     const iniciarBD = async () => {
-      if (!db) return;
+      if (user === null) {
+        const isLogin = await AsyncStorage.getItem(localSesion)
+        const u :Usuarios = JSON.parse(isLogin!)
+        setUser(u)
+        
+      }
+      console.log(user)
+      if (!isReady || !db) return;
 
       const result = await db.getAllAsync<Restaurant>(`
       SELECT 
@@ -128,44 +107,51 @@ export default function HomeScreen() {
         fuente
       FROM restaurantes
     `);
+
       setRestaurante(result);
+      bdCargadaRef.current = true; // ← marcar que la BD ya cargó
 
       const ubi = await AsyncStorage.getItem(LOCAL_KEY);
-      if (ubi) setLastFetchLocation(JSON.parse(ubi));
+      if (ubi) lastFetchRef.current = JSON.parse(ubi); // ← ref, no estado
     };
-    iniciarBD();
-  }, [db]); // espera a que db esté listo
 
-  // 2. Cuando cambia la ubicación, verificar si hay que buscar restaurantes
+    iniciarBD();
+  }, [db]);
+
+  // 2. Verificar ubicación — ahora usa ref, nunca lee estado stale
   useEffect(() => {
     const verificarUbicacion = async () => {
-      if (!location) return;
+      if (!location || !bdCargadaRef.current) return; // ← espera que BD cargue
 
-      if (!lastFetchLocation) {
+      const last = lastFetchRef.current;
+
+      if (!last) {
+        // Primera vez: pedir a la API
         fetchRestaurants(location.latitude, location.longitude);
-        setLastFetchLocation(location);
+        lastFetchRef.current = location;
         await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(location));
         return;
       }
 
       const distance = getDistanceInMeters(
-        lastFetchLocation.latitude,
-        lastFetchLocation.longitude,
+        last.latitude,
+        last.longitude,
         location.latitude,
         location.longitude,
       );
 
       console.log("Distancia recorrida:", distance);
 
-      if (distance > 2000) {
+      // Solo llama si se movió más de 5km — ya NO usa restaurante.length
+      if (distance > 5000) {
         fetchRestaurants(location.latitude, location.longitude);
-        setLastFetchLocation(location);
+        lastFetchRef.current = location;
         await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(location));
       }
     };
 
     verificarUbicacion();
-  }, [location]);
+  }, [location]); // ← location es la única dependencia real
 
   // 3. Cuando llegan restaurantes de la API y la BD está lista, guardar y mostrar
   useEffect(() => {
@@ -202,14 +188,15 @@ export default function HomeScreen() {
           [
             item.id,
             item.name,
-            item.description ?? null,
-            item.cuisine ?? null,
+            item.description ??
+              "Es un restaurante de comida tipica de la region, que promueve la cultura atraves de los platos que ofrece",
+            item.cuisine ?? "Tipica",
             item.address ?? displayName ?? null,
             "",
             item.latitude,
             item.longitude,
             item.image ?? null,
-            item.phone ?? null,
+            item.phone ?? "8569435741",
             item.openingHours ?? null,
             "api",
           ],
@@ -237,6 +224,8 @@ export default function HomeScreen() {
     FROM restaurantes
   `);
 
+    await insertarDemos(result);
+
     console.log(`🍽️ Total en BD después de guardar: ${result.length}`);
     setRestaurante(result);
   };
@@ -251,7 +240,7 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>¡Hola, Jorge 👋</Text>
+            <Text style={styles.greeting}>¡Hola, {user?.nombre} 👋</Text>
             <Text style={styles.subtitle}>¿Qué quieres comer hoy?</Text>
           </View>
           <TouchableOpacity
@@ -300,8 +289,6 @@ export default function HomeScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
-       
-
         {/* Los más visitados */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -336,22 +323,21 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-{/* PREGUNTA (Condición): 
+          {/* PREGUNTA (Condición): 
 // ¿La variable loadingRe dice que la base de datos está cargando 
 // O (||) el arreglo de 'restaurante' todavía está vacío (longitud === 0)?*/}
 
           {loadingRe || restaurante.length === 0 ? (
- // RESPUESTA AFIRMATIVA (Si se cumple alguna de las dos):
-  // Dibuja en la pantalla el ActivityIndicator (El circulito dando vueltas)
-            
+            // RESPUESTA AFIRMATIVA (Si se cumple alguna de las dos):
+            // Dibuja en la pantalla el ActivityIndicator (El circulito dando vueltas)
+
             <View style={styles.loaderContainer}>
               <ActivityIndicator size="large" color={Colors.primary} />
               <Text style={styles.loaderText}>Buscando restaurantes...</Text>
             </View>
           ) : (
-            
- // RESPUESTA NEGATIVA (Si ninguna de las dos se cumple): 
- // Empieza a dibujar la lista real de restaurantes usando .map()
+            // RESPUESTA NEGATIVA (Si ninguna de las dos se cumple):
+            // Empieza a dibujar la lista real de restaurantes usando .map()
 
             restaurante.map((restaurant) => (
               <RestaurantCard

@@ -1,97 +1,60 @@
 // Pantalla del Menú del Restaurante - Diseño TasteGo
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/colors';
-import { Spacing } from '@/constants/spacing';
-import { Typography } from '@/constants/typography';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Colors } from "@/constants/colors";
+import { Spacing } from "@/constants/spacing";
+import { Typography } from "@/constants/typography";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useBaseDeDatos, Platos } from "@/hooks/dataBase";
 
-interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price: string;
-  image: any;
-  rating: number;
-  hasAR: boolean;
-  model:any;
-}
-
-const menuItems: MenuItem[] = [
-  {
-    id: '1',
-    name: 'Banga Soup',
-    description: 'Sopa tradicional de palma con proteínas mixtas y especias',
-    price: '$30.99',
-    image: require('@/assets/images/food_soup.png'),
-    rating: 4.9,
-    hasAR: true,
-    model:require('@/assets/models/Untitled.glb')
-  },
-  {
-    id: '2',
-    name: 'Grilled Steak Premium',
-    description: 'Corte premium de res a la parrilla con vegetales asados',
-    price: '$35.99',
-    image: require('@/assets/images/restaurant_banner.png'),
-    rating: 4.8,
-    hasAR: true,
-    model:require('@/assets/models/Untitled.glb')
-  },
-  {
-    id: '3',
-    name: 'Chicken Stew',
-    description: 'Estofado de pollo con verduras de temporada y hierbas',
-    price: '$18.50',
-    image: require('@/assets/images/food_chicken.png'),
-    rating: 4.5,
-    hasAR: true,
-    model:''
-  },
-  {
-    id: '4',
-    name: 'Egg Salmon',
-    description: 'Salmón a la plancha con huevo pochado y ensalada fresca',
-    price: '$25.99',
-    image: require('@/assets/images/food_salmon.png'),
-    rating: 4.7,
-    hasAR: false,
-    model:''
-  },
-  {
-    id: '5',
-    name: 'Pizza Especial',
-    description: 'Pizza artesanal con ingredientes premium y masa fermentada',
-    price: '$22.00',
-    image: require('@/assets/images/food_pizza.png'),
-    rating: 4.6,
-    hasAR: false,
-    model:''
-  },
-];
 
 export default function MenuScreen() {
+  const { idRes } = useLocalSearchParams<{ idRes: string }>();
+  const { db, isReady, listarMenuRestaurante } = useBaseDeDatos();
+  const [menu, setMenu] = useState<Platos[] | []>([]);
   const router = useRouter();
-  const local = 'moldelRA'
-  const verRA = async (model : string)=>{
+  const local = "moldelRA";
+  const verRA = async (model: string) => {
     try {
-    await AsyncStorage.setItem(local, JSON.stringify(model));
+      await AsyncStorage.setItem(local, JSON.stringify(model));
 
-    console.log('Modelo guardado:', JSON.stringify(model));
+      console.log("Modelo guardado:", JSON.stringify(model));
 
-    router.push('/ar/instructions');
-  } catch (error) {
-    console.log('Error:', error);
-  }
-  }
+      router.push("/ar/instructions");
+    } catch (error) {
+      console.log("Error:", error);
+    }
+  };
+
+  useEffect(() => {
+    const cargarMenu = async () => {
+      if (!isReady || !db) return;
+      const menus = await listarMenuRestaurante(idRes);
+      
+      setMenu(menus);
+      
+    };
+    
+    cargarMenu();
+  });
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -99,7 +62,11 @@ export default function MenuScreen() {
           <Text style={styles.subtitle}>Sabor & Fuego</Text>
         </View>
         <TouchableOpacity style={styles.backButton}>
-          <Ionicons name="search-outline" size={22} color={Colors.textPrimary} />
+          <Ionicons
+            name="search-outline"
+            size={22}
+            color={Colors.textPrimary}
+          />
         </TouchableOpacity>
       </View>
 
@@ -109,12 +76,27 @@ export default function MenuScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoriesContent}
       >
-        {['Todo', 'Entradas', 'Plato fuerte', 'Sopas', 'Postres', 'Bebidas'].map((cat, index) => (
+        {[
+          "Todo",
+          "Entradas",
+          "Plato fuerte",
+          "Sopas",
+          "Postres",
+          "Bebidas",
+        ].map((cat, index) => (
           <TouchableOpacity
             key={cat}
-            style={[styles.categoryTab, index === 0 && styles.categoryTabActive]}
+            style={[
+              styles.categoryTab,
+              index === 0 && styles.categoryTabActive,
+            ]}
           >
-            <Text style={[styles.categoryText, index === 0 && styles.categoryTextActive]}>
+            <Text
+              style={[
+                styles.categoryText,
+                index === 0 && styles.categoryTextActive,
+              ]}
+            >
               {cat}
             </Text>
           </TouchableOpacity>
@@ -122,27 +104,36 @@ export default function MenuScreen() {
       </ScrollView>
 
       {/* Lista de platos */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.menuList}>
-        {menuItems.map((item) => (
-          <TouchableOpacity key={item.id} style={styles.menuCard} activeOpacity={0.8}>
-            <Image source={item.image} style={styles.menuImage} />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.menuList}
+      >
+        {menu.map((item) => (
+          <TouchableOpacity
+            key={item.id_plato}
+            style={styles.menuCard}
+            activeOpacity={0.8}
+          >
+            <Image source={{uri : item.imagen_url}} style={styles.menuImage} />
             <View style={styles.menuInfo}>
-              <Text style={styles.menuName}>{item.name}</Text>
-              <Text style={styles.menuDescription} numberOfLines={2}>{item.description}</Text>
+              <Text style={styles.menuName}>{item.nombre}</Text>
+              <Text style={styles.menuDescription} numberOfLines={2}>
+                {item.descripcion}
+              </Text>
               <View style={styles.menuBottom}>
-                <Text style={styles.menuPrice}>{item.price}</Text>
+                <Text style={styles.menuPrice}>{item.precio}</Text>
                 <View style={styles.menuActions}>
-                  <View style={styles.ratingSmall}>
-                    <Ionicons name="star" size={12} color="#FFB800" />
-                    <Text style={styles.ratingSmallText}>{item.rating}</Text>
-                  </View>
-                    <TouchableOpacity
-                      style={styles.arBadge}
-                      onPress={async() => await verRA(item.model)}
-                    >
-                      <Ionicons name="cube-outline" size={14} color={Colors.primary} />
-                      <Text style={styles.arBadgeText}>Ver 3D</Text>
-                    </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.arBadge}
+                    onPress={async () => await verRA(item.modelo_3d_url)}
+                  >
+                    <Ionicons
+                      name="cube-outline"
+                      size={14}
+                      color={Colors.primary}
+                    />
+                    <Text style={styles.arBadgeText}>Ver 3D</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -159,9 +150,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: Spacing.lg,
     paddingTop: 50,
     paddingBottom: Spacing.md,
@@ -171,11 +162,11 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: Colors.backgroundGray,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerCenter: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   title: {
     fontSize: Typography.sizes.xl,
@@ -215,10 +206,10 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxl,
   },
   menuCard: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: Colors.card,
     borderRadius: Spacing.borderRadius.lg,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: Spacing.md,
     shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 2 },
@@ -233,7 +224,7 @@ const styles = StyleSheet.create({
   menuInfo: {
     flex: 1,
     padding: Spacing.md,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   menuName: {
     fontSize: Typography.sizes.base,
@@ -248,9 +239,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   menuBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   menuPrice: {
     fontSize: Typography.sizes.lg,
@@ -258,13 +249,13 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   menuActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing.sm,
   },
   ratingSmall: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 2,
   },
   ratingSmallText: {
@@ -273,8 +264,8 @@ const styles = StyleSheet.create({
     fontWeight: Typography.weights.medium,
   },
   arBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 3,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,

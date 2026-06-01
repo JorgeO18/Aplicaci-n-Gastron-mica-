@@ -77,7 +77,7 @@ export default function ARInstructionsScreen() {
       setCurrentIndex(nextIndex);
     } else {
       // Usar ruta absoluta para evitar ambigüedades
-      router.replace({pathname:'/rarv',params:{tipo:'true'}});
+      router.replace({pathname:'../rarv',params:{tipo:'true'}});
     }
   };
 

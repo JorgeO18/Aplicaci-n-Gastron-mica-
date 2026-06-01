@@ -1,14 +1,15 @@
-import { useState, useEffect, Suspense } from "react";
-import { StyleSheet, View} from "react-native";
+import { useState, useEffect, Suspense, use } from "react";
+import { StyleSheet, View } from "react-native";
 import { Canvas } from "@react-three/fiber/native";
 import { useGLTF, OrbitControls } from "@react-three/drei/native";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { Asset } from "expo-asset";
 
-function Model({ modelPath,modo = false}: { modelPath: any , modo:boolean}) {
+function Model({ modelPath, modo = false }: { modelPath: any; modo: boolean }) {
   const gltf = useGLTF(modelPath);
   const scene = (gltf as any).scene;
   const escala = modo ? 0.8 : 1.4;
-  
+
   return <primitive object={scene} position={[0, 0, 0]} scale={escala} />;
 }
 
@@ -21,24 +22,32 @@ export default function ModelViewer({
 }) {
   const [permission, requestPermission] = useCameraPermissions();
   const [isRA, setIsRA] = useState(false);
+  
+ 
 
   useEffect(() => {
-    setIsRA(defaultModel === "AR");
-  }, [defaultModel]);
-
-  useEffect(() => {
-    if (defaultModel === "AR") {
-      if (!permission?.granted) {
-        requestPermission().then((result) => {
-          if (result.granted) setIsRA(true);
-        });
-      } else {
-        setIsRA(true);
-      }
-    } else {
+    if (defaultModel !== "AR") {
       setIsRA(false);
+      return;
     }
-  }, [defaultModel]);
+
+    // ⚠️ Espera a que useCameraPermissions haya cargado
+    if (permission === null) return;
+
+    if (permission.granted && defaultModel === 'AR') {
+      setIsRA(true);
+      return;
+    }
+
+    if (permission.status === "undetermined") {
+      requestPermission().then((result) => {
+        setIsRA(result.granted);
+      });
+      return;
+    }
+
+    setIsRA(false);
+  }, [defaultModel, permission]); // 👈 depende del objeto completo
 
   const canvasStyle = StyleSheet.flatten([
     isRA ? StyleSheet.absoluteFillObject : styles.rvCanvas,
@@ -58,12 +67,12 @@ export default function ModelViewer({
         camera={{ position: [0, 1, 3], fov: 60 }}
         gl={{ alpha: isRA }}
       >
-        {!isRA && (<color attach="background" args={["#a9a49e"]} />)}
+        {!isRA && <color attach="background" args={["#a9a49e"]} />}
         <ambientLight intensity={3} />
         <directionalLight position={[5, 5, 5]} intensity={3} />
         <directionalLight position={[-5, -5, -5]} intensity={1} />
         <Suspense fallback={null}>
-          <Model modelPath={modelPath} modo={isRA}/>
+          <Model modelPath={modelPath} modo={isRA} />
         </Suspense>
         <OrbitControls
           makeDefault
