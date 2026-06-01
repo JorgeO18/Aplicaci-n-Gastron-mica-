@@ -4,7 +4,7 @@
     "slug": "aplicacion-gastronomica",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/Tg_round.png",
     "scheme": "aplicaciongastronomica",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -21,7 +21,8 @@
       "package": "com.jorge_ortega.aplicaciongastronomica",
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA"
       ],
       "config": {
         "googleMaps": {
@@ -31,7 +32,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/Tg_round.png"
     },
     "plugins": [
       "expo-router",
@@ -48,11 +49,17 @@
         }
       ],
       "expo-asset",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Esta app necesita la cámara para el modo AR"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
     }
   }
 }

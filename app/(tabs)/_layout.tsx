@@ -1,9 +1,21 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { LogBox, Platform } from 'react-native';
 import { Home, Heart, User, Utensils } from 'lucide-react-native';
 import { GastronomicColors } from '@/constants/theme';
-
+LogBox.ignoreLogs([
+  'Looks like you have configured linking in multiple places',
+]);
+if (__DEV__) {
+  const _error = console.error.bind(console);
+  console.error = (...args: any[]) => {
+    if (
+      typeof args[0] === 'string' &&
+      args[0].includes('linking in multiple places')
+    ) return; // ← descarta solo este warning específico
+    _error(...args);
+  };
+}
 export default function TabLayout() {
   return (
     <Tabs
