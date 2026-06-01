@@ -1,5 +1,5 @@
 // Pantalla de Inicio de Sesión - Diseño TasteGo
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,10 +17,49 @@ import { Colors } from '@/constants/colors';
 import { Spacing } from '@/constants/spacing';
 import { Typography } from '@/constants/typography';
 import Logo from '@/components/Logo';
+import { useBaseDeDatos } from "../hooks/dataBase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LoginScreen() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [contraseña, setContraseña] = useState('')
+  const [correo,setCorreo] = useState('')
+  const { db, isReady, iniciarSesion } = useBaseDeDatos();
+  const localSesion = 'sesion'
+
+  useEffect(()=>{
+    const haySesion = async ()=>{
+      
+      const isLogin = await AsyncStorage.getItem(localSesion)
+      
+      if(isLogin === null)return
+      router.push('./(tabs)')
+    }
+    haySesion()
+
+  })
+
+  const login =async ()=>{
+    if (!isReady || !db) return;
+    const fecha = new Date().toISOString()
+    
+    // await db?.runAsync(`
+    //             INSERT INTO usuarios (nombre,email,password,fecha_nacimiento,telefono) VALUES (?,?,?,?,?)`, ["Elier", "elier@gmail.com", "12345",fecha,'3645589613']);
+    
+    if(contraseña.trim() === '' || correo.trim() === ''){
+      alert('Rellene todos los campos')
+    }else{
+      const login = await iniciarSesion(correo.trim(),contraseña.trim())
+      
+      if(login){
+        await AsyncStorage.setItem(localSesion,JSON.stringify(login))
+        router.replace('./(tabs)')
+      }else{
+        alert('Verifique sus credenciales')
+      }
+    }
+  }
 
   return (
     <KeyboardAvoidingView
@@ -54,6 +93,8 @@ export default function LoginScreen() {
             <Ionicons name="mail-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
+              value={correo}
+              onChangeText={setCorreo}
               placeholder="Correo electrónico"
               placeholderTextColor={Colors.textLight}
               keyboardType="email-address"
@@ -66,6 +107,8 @@ export default function LoginScreen() {
             <Ionicons name="lock-closed-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
+              value={contraseña}
+              onChangeText={setContraseña}
               placeholder="Contraseña"
               placeholderTextColor={Colors.textLight}
               secureTextEntry={!showPassword}
@@ -87,7 +130,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           {/* Botón Iniciar Sesión */}
-          <TouchableOpacity onPress={() => router.replace('/(tabs)')} activeOpacity={0.8}>
+          <TouchableOpacity onPress={async() => { await login()}} activeOpacity={0.8}>
             <LinearGradient
               colors={[Colors.gradientStart, Colors.gradientEnd]}
               start={{ x: 0, y: 0 }}

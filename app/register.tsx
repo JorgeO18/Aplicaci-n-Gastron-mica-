@@ -17,12 +17,66 @@ import { Colors } from '@/constants/colors';
 import { Spacing } from '@/constants/spacing';
 import { Typography } from '@/constants/typography';
 import Logo from '@/components/Logo';
+import { useBaseDeDatos } from "../hooks/dataBase";
+import DatePicker from 'react-native-date-picker';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const defaultBirthDate = () => {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - 18);
+  return date;
+};
+
+const formatBirthDate = (date: Date) => {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
 
 export default function RegisterScreen() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [birthDate, setBirthDate] = useState<Date | null>(null);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [nombre,setNombre] = useState('')
+  const [correo,setCorreo] = useState('')
+  const [numero, setNumero] = useState('')
+  const [contraseña, setContraseña] = useState('')
+  const [contraseña2, setContraseña2] = useState('')
+  const { db, isReady, registrarUsuario } = useBaseDeDatos();
+  const localSesion = 'sesion'
+
+
+  const registrar = async() =>{
+    if (!isReady || !db) return;
+    if(nombre.trim() === '' || correo.trim() === '' || contraseña.trim() === '' || contraseña2.trim() === '' || numero.trim() === '' || birthDate === null){
+      alert('Rellene todos los campos')
+    }else{
+      if (contraseña.trim() === contraseña2.trim()) {
+        
+        const user = {nombre : nombre, email : correo, password : contraseña, fecha_nacimiento : birthDate.toISOString(), telefono : numero}
+
+        const {mensaje , state} = await registrarUsuario(user)
+        alert(mensaje)
+        if (state) {
+          await AsyncStorage.setItem(localSesion,JSON.stringify(user))
+          router.replace('./(tabs)')
+        }
+      }
+    }
+  }
+
+
+
+
+
+
+
+
+
 
   return (
     <KeyboardAvoidingView
@@ -60,6 +114,8 @@ export default function RegisterScreen() {
             <Icon name="person-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
+              value={nombre}
+              onChangeText={setNombre}
               placeholder="Nombre completo"
               placeholderTextColor={Colors.textLight}
             />
@@ -70,6 +126,8 @@ export default function RegisterScreen() {
             <Icon name="mail-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
+              value={correo}
+              onChangeText={setCorreo}
               placeholder="Correo electrónico"
               placeholderTextColor={Colors.textLight}
               keyboardType="email-address"
@@ -78,20 +136,44 @@ export default function RegisterScreen() {
           </View>
 
           {/* Campo Fecha de Nacimiento */}
-          <View style={styles.inputContainer}>
+          <TouchableOpacity
+            style={styles.inputContainer}
+            onPress={() => setDatePickerOpen(true)}
+            activeOpacity={0.7}
+          >
             <Icon name="calendar-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Fecha de nacimiento (DD/MM/AAAA)"
-              placeholderTextColor={Colors.textLight}
-            />
-          </View>
+            <Text style={[styles.input, !birthDate && styles.inputPlaceholder]}>
+              {birthDate ? formatBirthDate(birthDate) : 'Fecha de nacimiento (DD/MM/AAAA)'}
+            </Text>
+          </TouchableOpacity>
+
+          <DatePicker
+            modal
+            open={datePickerOpen}
+            date={birthDate ?? defaultBirthDate()}
+            mode="date"
+            locale="es"
+            theme="light"
+            buttonColor={Colors.primary}
+            dividerColor={Colors.primary}
+            title="Fecha de nacimiento"
+            confirmText="Confirmar"
+            cancelText="Cancelar"
+            maximumDate={new Date()}
+            onConfirm={(date) => {
+              setDatePickerOpen(false);
+              setBirthDate(date);
+            }}
+            onCancel={() => setDatePickerOpen(false)}
+          />
 
           {/* Campo Teléfono */}
           <View style={styles.inputContainer}>
             <Icon name="call-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
+              value={numero}
+              onChangeText={setNumero}
               placeholder="Teléfono"
               placeholderTextColor={Colors.textLight}
               keyboardType="phone-pad"
@@ -103,6 +185,8 @@ export default function RegisterScreen() {
             <Icon name="lock-closed-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
+              value={contraseña}
+              onChangeText={setContraseña}
               placeholder="Contraseña"
               placeholderTextColor={Colors.textLight}
               secureTextEntry={!showPassword}
@@ -121,6 +205,8 @@ export default function RegisterScreen() {
             <Icon name="lock-closed-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
+              value={contraseña2}
+              onChangeText={setContraseña2}
               placeholder="Confirmar contraseña"
               placeholderTextColor={Colors.textLight}
               secureTextEntry={!showConfirmPassword}
@@ -149,7 +235,7 @@ export default function RegisterScreen() {
           </TouchableOpacity>
 
           {/* Botón Registro */}
-          <TouchableOpacity onPress={() => router.replace('/(tabs)')} activeOpacity={0.8}>
+          <TouchableOpacity onPress={async() => {await registrar()}} activeOpacity={0.8}>
             <LinearGradient
               colors={[Colors.gradientStart, Colors.gradientEnd]}
               start={{ x: 0, y: 0 }}
@@ -238,6 +324,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: Typography.sizes.base,
     color: Colors.textPrimary,
+  },
+  inputPlaceholder: {
+    color: Colors.textLight,
   },
   termsContainer: {
     flexDirection: 'row',
