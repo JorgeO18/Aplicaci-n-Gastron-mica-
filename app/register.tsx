@@ -1,5 +1,5 @@
 // Pantalla de Registro de Usuario - Diseño TasteGo
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import { Spacing } from '@/constants/spacing';
 import { Typography } from '@/constants/typography';
 import Logo from '@/components/Logo';
 import { useBaseDeDatos } from "../hooks/dataBase";
-import DatePicker from 'react-native-date-picker';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const defaultBirthDate = () => {
@@ -48,8 +48,9 @@ export default function RegisterScreen() {
   const [contraseña2, setContraseña2] = useState('')
   const { db, isReady, registrarUsuario } = useBaseDeDatos();
   const localSesion = 'sesion'
-
-
+  
+  // Memoize para evitar pasar referencias nuevas en cada render al DatePicker
+  const initialDefaultDate = useMemo(() => defaultBirthDate(), []);
   const registrar = async() =>{
     if (!isReady || !db) return;
     if(nombre.trim() === '' || correo.trim() === '' || contraseña.trim() === '' || contraseña2.trim() === '' || numero.trim() === '' || birthDate === null){
@@ -147,25 +148,20 @@ export default function RegisterScreen() {
             </Text>
           </TouchableOpacity>
 
-          <DatePicker
-            modal
-            open={datePickerOpen}
-            date={birthDate ?? defaultBirthDate()}
-            mode="date"
-            locale="es"
-            theme="light"
-            buttonColor={Colors.primary}
-            dividerColor={Colors.primary}
-            title="Fecha de nacimiento"
-            confirmText="Confirmar"
-            cancelText="Cancelar"
-            maximumDate={new Date()}
-            onConfirm={(date) => {
-              setDatePickerOpen(false);
-              setBirthDate(date);
-            }}
-            onCancel={() => setDatePickerOpen(false)}
-          />
+          {datePickerOpen && (
+            <DateTimePicker
+              value={birthDate ?? initialDefaultDate}
+              mode="date"
+              display="default"
+              maximumDate={new Date()}
+              onChange={(event: DateTimePickerEvent, selectedDate?: Date) => {
+                setDatePickerOpen(false);
+                if (event.type === "set" && selectedDate) {
+                  setBirthDate(selectedDate);
+                }
+              }}
+            />
+          )}
 
           {/* Campo Teléfono */}
           <View style={styles.inputContainer}>

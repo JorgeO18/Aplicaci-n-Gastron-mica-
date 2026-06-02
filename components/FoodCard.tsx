@@ -8,9 +8,9 @@ import { Typography } from '../constants/typography';
 
 interface FoodCardProps {
   name: string;
-  image: ImageSourcePropType;
-  price: string;
-  rating?: number;
+  image: string;
+ciudad: string;
+  telefono: string;
   isFavorite?: boolean;
   onPress?: () => void;
   onFavoritePress?: () => void;
@@ -21,8 +21,8 @@ interface FoodCardProps {
 export default function FoodCard({
   name,
   image,
-  price,
-  rating,
+  ciudad,
+  telefono,
   isFavorite = false,
   onPress,
   onFavoritePress,
@@ -32,7 +32,7 @@ export default function FoodCard({
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.imageContainer}>
-        <Image source={image} style={styles.image} />
+        <Image source={{uri: image}} style={styles.image} />
         <TouchableOpacity style={styles.heartButton} onPress={onFavoritePress}>
           <Ionicons
             name={isFavorite ? 'heart' : 'heart-outline'}
@@ -44,11 +44,11 @@ export default function FoodCard({
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={2}>{name}</Text>
         <View style={styles.bottomRow}>
-          <Text style={styles.price}>{price}</Text>
-          {rating && (
+          <Text style={styles.price}>{ciudad}</Text>
+          {telefono && (
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={12} color="#FFB800" />
-              <Text style={styles.ratingText}>{rating}</Text>
+              <Text style={styles.ratingText}>{telefono}</Text>
             </View>
           )}
         </View>

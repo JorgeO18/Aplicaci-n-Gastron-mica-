@@ -1,11 +1,12 @@
 // Pantalla de Favoritos - Grid de platos guardados
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { Spacing } from '@/constants/spacing';
 import { Typography } from '@/constants/typography';
 import FoodCard from '@/components/FoodCard';
+
 
 const favorites = [
   {
@@ -58,8 +59,16 @@ const favorites = [
   },
 ];
 
+interface Favoritos {
+  nombre: string;
+  image:string;
+  ciudad: string;
+ telefono: string;
+}
+
 export default function FavouritesScreen() {
   const router = useRouter();
+  const [favoritos, setFavoritos] = useState<Favoritos[]|[]>([]);
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -70,15 +79,14 @@ export default function FavouritesScreen() {
 
       {/* Grid de favoritos */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.grid}>
-        <View style={styles.row}>
-          {favorites.map((food, index) => (
-            <View key={food.id} style={styles.cardWrapper}>
+        <View style={styles.row}> 
+          {favoritos.map((food, index) => (
+            <View key={index} style={styles.cardWrapper}>
               <FoodCard
-                name={food.name}
+                name={food.nombre}
                 image={food.image}
-                price={food.price}
-                rating={food.rating}
-                isFavorite={food.isFavorite}
+                ciudad={food.ciudad}
+                telefono={food.telefono}
                 showAR={true}
                 onARPress={() => router.push('/ar/instructions')}
               />

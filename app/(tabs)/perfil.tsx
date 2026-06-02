@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Linking,
   Platform,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -18,26 +19,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { Usuarios } from "../../hooks/dataBase";
 
-interface ProfileField {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-  color?: string;
-}
 
-const profileFields: ProfileField[] = [
-  { icon: "person-outline", label: "Username", value: "ana_rodriguez" },
-  {
-    icon: "mail-outline",
-    label: "Correo electrónico",
-    value: "ana.rodriguez@email.com",
-  },
-  { icon: "call-outline", label: "Teléfono", value: "+57 315 234 5678" },
-  { icon: "location-outline", label: "Ubicación", value: "Sincelejo, Sucre" },
-];
 
 const emergencyContacts = [
-  { name: "Carlos Rodríguez", relation: "Esposo", phone: "+57 320 456 7890" },
+  { name: "Carla Rodríguez", relation: "Esposa", phone: "+57 320 456 7890" },
   { name: "Marta López", relation: "Madre", phone: "+57 318 234 5678" },
 ];
 
@@ -77,7 +62,7 @@ export default function ProfileScreen() {
           {/* Avatar */}
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>AR</Text>
+              <Image source={require("@/assets/images/user.png")} style={styles.avatarImage} />
             </View>
             <TouchableOpacity style={styles.editAvatar}>
               <Ionicons name="camera" size={14} color={Colors.textWhite} />
@@ -94,26 +79,51 @@ export default function ProfileScreen() {
         {/* Información personal */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información Personal</Text>
-          {profileFields.map((field, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.fieldRow}
-              activeOpacity={0.7}
-            >
-              <View style={styles.fieldIcon}>
-                <Ionicons name={field.icon} size={20} color={Colors.primary} />
-              </View>
-              <View style={styles.fieldContent}>
-                <Text style={styles.fieldLabel}>{field.label}</Text>
-                <Text style={styles.fieldValue}>{field.value}</Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={Colors.textLight}
-              />
-            </TouchableOpacity>
-          ))}
+          
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7}>
+            <View style={styles.fieldIcon}>
+              <Ionicons name="person-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.fieldContent}>
+              <Text style={styles.fieldLabel}>Nombre</Text>
+              <Text style={styles.fieldValue}>{user?.nombre ?? "Cargando..."}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7}>
+            <View style={styles.fieldIcon}>
+              <Ionicons name="mail-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.fieldContent}>
+              <Text style={styles.fieldLabel}>Correo electrónico</Text>
+              <Text style={styles.fieldValue}>{user?.email ?? "Cargando..."}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7}>
+            <View style={styles.fieldIcon}>
+              <Ionicons name="call-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.fieldContent}>
+              <Text style={styles.fieldLabel}>Teléfono</Text>
+              {/* @ts-ignore - Si en el futuro agregas teléfono a la BD, aquí se mostrará */}
+              <Text style={styles.fieldValue}>{user?.telefono ?? "+57 315 234 5678"}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7}>
+            <View style={styles.fieldIcon}>
+              <Ionicons name="location-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.fieldContent}>
+              <Text style={styles.fieldLabel}>Ubicación</Text>
+              <Text style={styles.fieldValue}>Sincelejo, Sucre</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
         </View>
 
         {/* Contactos de Emergencia */}
@@ -299,6 +309,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 3,
     borderColor: "rgba(255,255,255,0.4)",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 45,
   },
   avatarText: {
     fontSize: Typography.sizes.xxxl,
