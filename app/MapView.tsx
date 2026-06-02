@@ -4,8 +4,8 @@ import MapScreen from '../components/MapScreen';
 import { useLocalSearchParams } from 'expo-router';
 
 export default function App() {
-    const {id} = useLocalSearchParams()
-    console.log(id)
+    const {idRes} = useLocalSearchParams()
+    console.log(idRes)
   return (
     <View style={styles.container}>
       <StatusBar style="light" backgroundColor="#1F4E79" />
@@ -17,7 +17,7 @@ export default function App() {
       
 
       {/* Mapa principal */}
-      <MapScreen resId={Number(id)}/>
+      <MapScreen resId={Number(idRes)}/>
     </View>
   );
 }
