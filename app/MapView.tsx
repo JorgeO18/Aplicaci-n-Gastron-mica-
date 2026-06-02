@@ -5,7 +5,7 @@ import { useLocalSearchParams } from 'expo-router';
 
 export default function App() {
     const {id} = useLocalSearchParams()
-    
+    console.log(id)
   return (
     <View style={styles.container}>
       <StatusBar style="light" backgroundColor="#1F4E79" />
@@ -14,6 +14,7 @@ export default function App() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🍽️ Tu ruta la restaurante</Text>
       </View>
+      
 
       {/* Mapa principal */}
       <MapScreen resId={Number(id)}/>

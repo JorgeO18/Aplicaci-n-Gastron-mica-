@@ -55,8 +55,8 @@
         {
           "cameraPermission": "Esta app necesita la cámara para el modo AR"
         }
-      ],
-      "@react-native-community/datetimepicker"
+      ]
+      
     ],
     "experiments": {
       "typedRoutes": true,

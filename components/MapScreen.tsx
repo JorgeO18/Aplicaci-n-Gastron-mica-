@@ -182,7 +182,7 @@ export default function MapScreen({
   const [panelAnim] = useState(new Animated.Value(0));
   const [mapReady, setMapReady] = useState(false);
 
-  const { db, isReady, error } = useBaseDeDatos();
+  const { db, isReady, } = useBaseDeDatos();
   const [restaurante, setRestaurante] = useState<Restaurant[]>([]);
  
 
@@ -220,6 +220,7 @@ export default function MapScreen({
       
       // Buscar por id, no por índice
       const defaultRestaurant = restaurante.find((r) => r.id === String(resId));
+      console.log(resId)
       if (!defaultRestaurant) return;
   
       

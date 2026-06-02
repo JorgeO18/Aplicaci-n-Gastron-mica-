@@ -3,6 +3,14 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { Restaurant } from './useRestaurants';
 
 export interface Usuarios {
+    id_usuario: number;
+    nombre: string;
+    email: string;
+    password: string;
+    fecha_nacimiento: string;
+    telefono: string;
+}
+interface UsuariosI {
     nombre: string;
     email: string;
     password: string;
@@ -19,6 +27,13 @@ export interface Platos {
     imagen_url: string;
     modelo_3d_url: string;
     disponible: number;
+}
+export interface Favoritos {
+    id: string;
+    nombre: string;
+    image: string;
+    ciudad: string;
+    telefono: string;
 }
 
 // ✅ Esta función se pasa a SQLiteProvider y solo corre UNA vez
@@ -158,7 +173,7 @@ export function useBaseDeDatos() {
         }
     };
 
-    const registrarUsuario = async (user: Usuarios) => {
+    const registrarUsuario = async (user: UsuariosI) => {
         const existeCorreo = await db.getFirstAsync(
             `SELECT * FROM usuarios WHERE email = ?`, [user.email]
         );
@@ -195,12 +210,9 @@ export function useBaseDeDatos() {
 
     const listarFavoritosUsuario = async (idUsuario: number) => {
         try {
-            return await db.getAllAsync<Restaurant>(`
-                SELECT r.id_restaurante AS id, r.nombre AS name, r.descripcion AS description,
-                       r.tipo_comida AS cuisine, r.direccion AS address, r.ciudad,
-                       r.latitud AS latitude, r.longitud AS longitude,
-                       r.imagen_url AS image, r.telefono AS phone,
-                       r.horario AS openingHours, r.fuente
+            return await db.getAllAsync<Favoritos>(`
+                SELECT r.id_restaurante AS id, r.nombre AS nombre,
+                       r.imagen_url AS image, r.ciudad, r.telefono
                 FROM restaurantes r
                 INNER JOIN favoritos f ON r.id_restaurante = f.id_restaurante
                 WHERE f.id_usuario = ?
@@ -221,6 +233,13 @@ export function useBaseDeDatos() {
             return [];
         }
     };
+    const obtenerUsuarioCorreo = async (email: string) => {
+        try {
+            return await db.getFirstAsync<Usuarios>(`SELECT * FROM usuarios WHERE email = ?`, [email])
+        } catch (error) {
+
+        }
+    }
 
     return {
         db,
@@ -231,5 +250,6 @@ export function useBaseDeDatos() {
         agregarFavoritos,
         listarFavoritosUsuario,
         listarMenuRestaurante,
+        obtenerUsuarioCorreo
     };
 }

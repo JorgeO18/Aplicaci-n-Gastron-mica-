@@ -18,14 +18,17 @@ import { Typography } from '@/constants/typography';
 import GradientButton from '@/components/GradientButton';
 
 import {Restaurant} from "../../hooks/useRestaurants";
-import { useBaseDeDatos } from "../../hooks/dataBase";
+import { useBaseDeDatos,Usuarios } from "../../hooks/dataBase";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function RestaurantDetailScreen() {
   const router = useRouter();
+  const localSesion = "sesion";
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { db, isReady } = useBaseDeDatos();
+  const { db, isReady,agregarFavoritos, obtenerUsuarioCorreo } = useBaseDeDatos();
   const [restaurante, setRestaurante] = useState<Restaurant[]>([]);
   
 
@@ -52,7 +55,20 @@ export default function RestaurantDetailScreen() {
     };
     iniciarBD();
   }, [db]);
+  const agregarFavorito = async()=>{
+    const isLogin = await AsyncStorage.getItem(localSesion);
+    try {
+      const u : Usuarios = JSON.parse(isLogin!)
+      const usario = await obtenerUsuarioCorreo(u.email)
+      console.log(usario)
+      await agregarFavoritos(id,Number(usario?.id_usuario))
 
+    } catch (error) {
+      
+    }
+  }
+  
+  console.log(id)
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -76,7 +92,7 @@ export default function RestaurantDetailScreen() {
               <TouchableOpacity style={styles.circleButton}>
                 <Ionicons name="share-outline" size={22} color={Colors.textWhite} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.circleButton}>
+              <TouchableOpacity style={styles.circleButton} onPress={agregarFavorito}>
                 <Ionicons name="heart-outline" size={22} color={Colors.textWhite} />
               </TouchableOpacity>{/*Favoritos boton */}
             </View>
