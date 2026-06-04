@@ -28,9 +28,16 @@ export default function RestaurantDetailScreen() {
   const router = useRouter();
   const localSesion = "sesion";
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { db, isReady,agregarFavoritos, obtenerUsuarioCorreo } = useBaseDeDatos();
+  const {
+    db,
+    isReady,
+    agregarFavoritos,
+    eliminarFavoritos,
+    estaEnFavoritos,
+    obtenerUsuarioCorreo,
+  } = useBaseDeDatos();
   const [restaurante, setRestaurante] = useState<Restaurant[]>([]);
-  
+  const [esFavorito, setEsFavorito] = useState(false);
 
   useEffect(() => {
     const iniciarBD = async () => {
@@ -54,21 +61,49 @@ export default function RestaurantDetailScreen() {
       setRestaurante(result);
     };
     iniciarBD();
-  }, [db]);
-  const agregarFavorito = async()=>{
-    const isLogin = await AsyncStorage.getItem(localSesion);
-    try {
-      const u : Usuarios = JSON.parse(isLogin!)
-      const usario = await obtenerUsuarioCorreo(u.email)
-      console.log(usario)
-      await agregarFavoritos(id,Number(usario?.id_usuario))
+  }, [db, id, isReady]);
 
-    } catch (error) {
-      
+  useEffect(() => {
+    const cargarEstadoFavorito = async () => {
+      if (!isReady || !id) return;
+      const isLogin = await AsyncStorage.getItem(localSesion);
+      if (!isLogin) {
+        setEsFavorito(false);
+        return;
+      }
+      try {
+        const u: Usuarios = JSON.parse(isLogin);
+        const usuario = await obtenerUsuarioCorreo(u.email);
+        if (!usuario?.id_usuario) return;
+        const enFavoritos = await estaEnFavoritos(id, Number(usuario.id_usuario));
+        setEsFavorito(enFavoritos);
+      } catch {
+        setEsFavorito(false);
+      }
+    };
+    cargarEstadoFavorito();
+  }, [id, isReady, estaEnFavoritos, obtenerUsuarioCorreo]);
+
+  const alternarFavorito = async () => {
+    const isLogin = await AsyncStorage.getItem(localSesion);
+    if (!isLogin) return;
+    try {
+      const u: Usuarios = JSON.parse(isLogin);
+      const usuario = await obtenerUsuarioCorreo(u.email);
+      const idUsuario = Number(usuario?.id_usuario);
+      if (!idUsuario) return;
+
+      if (esFavorito) {
+        await eliminarFavoritos(id, idUsuario);
+        setEsFavorito(false);
+      } else {
+        await agregarFavoritos(id, idUsuario);
+        setEsFavorito(true);
+      }
+    } catch {
+      // sin sesión válida o error de BD
     }
-  }
-  
-  console.log(id)
+  };
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -92,9 +127,13 @@ export default function RestaurantDetailScreen() {
               <TouchableOpacity style={styles.circleButton}>
                 <Ionicons name="share-outline" size={22} color={Colors.textWhite} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.circleButton} onPress={agregarFavorito}>
-                <Ionicons name="heart-outline" size={22} color={Colors.textWhite} />
-              </TouchableOpacity>{/*Favoritos boton */}
+              <TouchableOpacity style={styles.circleButton} onPress={alternarFavorito}>
+                <Ionicons
+                  name={esFavorito ? 'heart' : 'heart-outline'}
+                  size={22}
+                  color={esFavorito ? Colors.primary : Colors.textWhite}
+                />
+              </TouchableOpacity>
             </View>
           </View>
         </View>

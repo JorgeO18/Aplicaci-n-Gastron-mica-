@@ -1,6 +1,6 @@
 // Tarjeta de plato de comida para Favoritos y Menú
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ImageSourcePropType } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
@@ -9,7 +9,7 @@ import { Typography } from '../constants/typography';
 interface FoodCardProps {
   name: string;
   image: string;
-ciudad: string;
+  ciudad: string;
   telefono: string;
   isFavorite?: boolean;
   onPress?: () => void;
@@ -23,17 +23,23 @@ export default function FoodCard({
   image,
   ciudad,
   telefono,
-  isFavorite = false,
+  isFavorite = true,
   onPress,
   onFavoritePress,
-  showAR = false,
-  onARPress,
+  
+  
 }: FoodCardProps) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.imageContainer}>
-        <Image source={{uri: image}} style={styles.image} />
-        <TouchableOpacity style={styles.heartButton} onPress={onFavoritePress}>
+        <Image source={require("@/assets/images/restaurant_banner.png")} style={styles.image} />
+        <TouchableOpacity
+          style={styles.heartButton}
+          onPress={(e) => {
+            e.stopPropagation?.();
+            onFavoritePress?.();
+          }}
+        >
           <Ionicons
             name={isFavorite ? 'heart' : 'heart-outline'}
             size={18}
@@ -47,17 +53,12 @@ export default function FoodCard({
           <Text style={styles.price}>{ciudad}</Text>
           {telefono && (
             <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={12} color="#FFB800" />
+              <Ionicons name="call" size={12} color="#ff5100" />
               <Text style={styles.ratingText}>{telefono}</Text>
             </View>
           )}
         </View>
-        {showAR && (
-          <TouchableOpacity style={styles.arButton} onPress={onARPress}>
-            <Ionicons name="cube-outline" size={14} color={Colors.primary} />
-            <Text style={styles.arText}>Ver 3D</Text>
-          </TouchableOpacity>
-        )}
+        
       </View>
     </TouchableOpacity>
   );

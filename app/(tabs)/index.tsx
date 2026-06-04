@@ -1,5 +1,4 @@
 // Pantalla Home - Pantalla principal con diseño de TasteGo
-import CategoryIcon from "@/components/CategoryIcon";
 import RestaurantCard from "@/components/RestaurantCard";
 import SearchBar from "@/components/SearchBar";
 import { Colors } from "@/constants/colors";

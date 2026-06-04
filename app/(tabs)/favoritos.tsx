@@ -15,19 +15,47 @@ export default function FavouritesScreen() {
   const router = useRouter();
   const localSesion = "sesion";
   const [favoritos, setFavoritos] = useState<Favoritos[] | []>([]);
-  const { db, isReady, listarFavoritosUsuario, obtenerUsuarioCorreo } =
-    useBaseDeDatos();
+  const {
+    isReady,
+    listarFavoritosUsuario,
+    obtenerUsuarioCorreo,
+    eliminarFavoritos,
+  } = useBaseDeDatos();
 
   useEffect(() => {
-    const cargarFav = async () => {
+    if (!isReady) return;
+    const cargarFavoritos = async () => {
       const isLogin = await AsyncStorage.getItem(localSesion);
-      const u: Usuarios = JSON.parse(isLogin!);
-      const usario = await obtenerUsuarioCorreo(u.email);
-      const restarante = await listarFavoritosUsuario(Number(usario?.id_usuario));
-      setFavoritos(restarante)
+      if (!isLogin) {
+        setFavoritos([]);
+        return;
+      }
+      try {
+        const u: Usuarios = JSON.parse(isLogin);
+        const usuario = await obtenerUsuarioCorreo(u.email);
+        const restaurantes = await listarFavoritosUsuario(Number(usuario?.id_usuario));
+        setFavoritos(restaurantes);
+      } catch {
+        setFavoritos([]);
+      }
     };
-    cargarFav()
-  });
+    cargarFavoritos();
+  }, [isReady, listarFavoritosUsuario, obtenerUsuarioCorreo]);
+
+  const quitarFavorito = async (idRestaurante: string) => {
+    const isLogin = await AsyncStorage.getItem(localSesion);
+    if (!isLogin) return;
+    try {
+      const u: Usuarios = JSON.parse(isLogin);
+      const usuario = await obtenerUsuarioCorreo(u.email);
+      const idUsuario = Number(usuario?.id_usuario);
+      if (!idUsuario) return;
+      await eliminarFavoritos(idRestaurante, idUsuario);
+      setFavoritos((prev) => prev.filter((f) => f.id !== idRestaurante));
+    } catch {
+      // error al eliminar
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -43,15 +71,16 @@ export default function FavouritesScreen() {
         contentContainerStyle={styles.grid}
       >
         <View style={styles.row}>
-          {favoritos.map((food, index) => (
-            <View key={index} style={styles.cardWrapper}>
+          {favoritos.map((food) => (
+            <View key={food.id} style={styles.cardWrapper}>
               <FoodCard
                 name={food.nombre}
-                image={food.image}
+                image={require("@/assets/images/restaurant_banner.png")}
                 ciudad={food.ciudad}
                 telefono={food.telefono}
-                showAR={true}
-                onARPress={() => router.push("/ar/instructions")}
+                
+                onPress={() => router.replace(`../restaurant/${food.id}`)}
+                onFavoritePress={() => quitarFavorito(food.id)}
               />
             </View>
           ))}

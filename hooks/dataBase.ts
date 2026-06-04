@@ -208,6 +208,30 @@ export function useBaseDeDatos() {
         }
     };
 
+    const eliminarFavoritos = async (idRest: string, idUser: number) => {
+        try {
+            await db.runAsync(
+                `DELETE FROM favoritos WHERE id_usuario = ? AND id_restaurante = ?`,
+                [idUser, idRest]
+            );
+        } catch (error) {
+            console.log('Error al eliminar de favoritos:', error);
+        }
+    };
+
+    const estaEnFavoritos = async (idRest: string, idUser: number): Promise<boolean> => {
+        try {
+            const fila = await db.getFirstAsync(
+                `SELECT 1 FROM favoritos WHERE id_usuario = ? AND id_restaurante = ?`,
+                [idUser, idRest]
+            );
+            return fila != null;
+        } catch (error) {
+            console.log('Error al verificar favoritos:', error);
+            return false;
+        }
+    };
+
     const listarFavoritosUsuario = async (idUsuario: number) => {
         try {
             return await db.getAllAsync<Favoritos>(`
@@ -248,6 +272,8 @@ export function useBaseDeDatos() {
         registrarUsuario,
         iniciarSesion,
         agregarFavoritos,
+        eliminarFavoritos,
+        estaEnFavoritos,
         listarFavoritosUsuario,
         listarMenuRestaurante,
         obtenerUsuarioCorreo

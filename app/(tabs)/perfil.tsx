@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
-  Platform,
   Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -88,7 +87,7 @@ export default function ProfileScreen() {
               <Text style={styles.fieldLabel}>Nombre</Text>
               <Text style={styles.fieldValue}>{user?.nombre ?? "Cargando..."}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+            
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7}>
@@ -99,7 +98,7 @@ export default function ProfileScreen() {
               <Text style={styles.fieldLabel}>Correo electrónico</Text>
               <Text style={styles.fieldValue}>{user?.email ?? "Cargando..."}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+            
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7}>
@@ -111,7 +110,7 @@ export default function ProfileScreen() {
               {/* @ts-ignore - Si en el futuro agregas teléfono a la BD, aquí se mostrará */}
               <Text style={styles.fieldValue}>{user?.telefono ?? "+57 315 234 5678"}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+            
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7}>
@@ -122,7 +121,7 @@ export default function ProfileScreen() {
               <Text style={styles.fieldLabel}>Ubicación</Text>
               <Text style={styles.fieldValue}>Sincelejo, Sucre</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+            
           </TouchableOpacity>
         </View>
 
