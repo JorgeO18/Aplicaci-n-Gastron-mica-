@@ -114,7 +114,7 @@ export default function MenuScreen() {
             style={styles.menuCard}
             activeOpacity={0.8}
           >
-            <Image source={{uri : item.imagen_url}} style={styles.menuImage} />
+            <Image source={require("@/assets/images/food_soup.png")} style={styles.menuImage} />
             <View style={styles.menuInfo}>
               <Text style={styles.menuName}>{item.nombre}</Text>
               <Text style={styles.menuDescription} numberOfLines={2}>
@@ -188,6 +188,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.borderRadius.full,
     backgroundColor: Colors.backgroundGray,
+    height:Spacing.sm
   },
   categoryTabActive: {
     backgroundColor: Colors.primary,

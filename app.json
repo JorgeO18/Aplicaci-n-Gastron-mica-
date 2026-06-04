@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "aplicacion-gastronomica",
-    "slug": "aplicacion-gastronomica",
+    "name": "TasteGo",
+    "slug": "tastego",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/Tg_round.png",
@@ -22,7 +22,8 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "config": {
         "googleMaps": {
@@ -56,11 +57,17 @@
           "cameraPermission": "Esta app necesita la cámara para el modo AR"
         }
       ]
-      
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": false
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6ad489bc-df33-4b21-bd3c-1f073d7ead36"
+      }
+    },
+    "owner": "elier-code"
   }
 }

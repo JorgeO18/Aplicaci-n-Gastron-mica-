@@ -1,50 +1,239 @@
-# Welcome to your Expo app 👋
+# TasteGo
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**TasteGo** es una aplicación móvil gastronómica desarrollada con [Expo](https://expo.dev) y [React Native](https://reactnative.dev). Permite descubrir restaurantes cercanos, consultar menús, guardar favoritos, calcular rutas y visualizar platos en realidad aumentada (AR) o realidad virtual (VR).
 
-## Get started
+| Campo | Valor |
+|-------|--------|
+| Nombre en tiendas | TasteGo |
+| Slug Expo | `tastego` |
+| Versión | 1.0.0 |
+| Paquete Android | `com.jorge_ortega.aplicaciongastronomica` |
+| Esquema deep link | `aplicaciongastronomica` |
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## Tabla de contenidos
 
-2. Start the app
+1. [Características principales](#características-principales)
+2. [Requisitos](#requisitos)
+3. [Instalación y ejecución](#instalación-y-ejecución)
+4. [Scripts disponibles](#scripts-disponibles)
+5. [Estructura del proyecto](#estructura-del-proyecto)
+6. [Flujo de la aplicación](#flujo-de-la-aplicación)
+7. [Tecnologías](#tecnologías)
+8. [Servicios externos](#servicios-externos)
+9. [Base de datos local](#base-de-datos-local)
+10. [Build y despliegue (EAS)](#build-y-despliegue-eas)
+11. [Documentación adicional](#documentación-adicional)
+12. [Notas de seguridad](#notas-de-seguridad)
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## Características principales
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **Descubrimiento de restaurantes**: búsqueda de establecimientos cercanos mediante la API [Overpass](https://wiki.openstreetmap.org/wiki/Overpass_API) (OpenStreetMap).
+- **Geolocalización**: obtención de la ubicación del usuario, geocodificación inversa y cálculo de distancias.
+- **Detalle de restaurante**: ficha con información, favoritos y acceso al menú.
+- **Menú y platos**: listado desde SQLite con datos de demostración (platos regionales colombianos).
+- **Favoritos**: persistencia por usuario en base de datos local.
+- **Rutas**: cálculo de trayectos con [OSRM](https://project-osrm.org/) y visualización en mapa (Google Maps en Android).
+- **Realidad aumentada / virtual**: visualización de modelos 3D (`.glb`) con `@react-three/fiber`, `expo-gl` y cámara.
+- **Autenticación local**: registro e inicio de sesión con usuarios almacenados en SQLite y sesión en `AsyncStorage`.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## Requisitos
 
-When you're ready, run:
+- [Node.js](https://nodejs.org/) 18 o superior (recomendado LTS)
+- npm o yarn
+- [Expo CLI](https://docs.expo.dev/get-started/installation/) (vía `npx expo`)
+- Para Android: [Android Studio](https://developer.android.com/studio) y emulador o dispositivo físico
+- Para iOS (solo macOS): Xcode y simulador
+- Cuenta en [Expo](https://expo.dev) para builds con EAS (opcional)
+- **Google Maps API Key** configurada en `app.json` → `android.config.googleMaps.apiKey` (necesaria para el mapa en Android)
+- Conexión a internet para Overpass, OSRM y geocodificación
+
+---
+
+## Instalación y ejecución
 
 ```bash
-npm run reset-project
+# Clonar el repositorio e instalar dependencias
+npm install
+
+# Iniciar el servidor de desarrollo
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Desde la terminal de Expo puedes abrir la app en:
 
-## Learn more
+- **Android**: tecla `a` o `npm run android`
+- **iOS**: tecla `i` o `npm run ios` (macOS)
+- **Web**: tecla `w` o `npm run web`
+- **Expo Go**: escanear el código QR (algunas funciones nativas, como AR o mapas avanzados, pueden requerir un *development build*)
 
-To learn more about developing your project with Expo, look at the following resources:
+### Development build
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Para cámara, SQLite y mapas sin las limitaciones de Expo Go:
 
-## Join the community
+```bash
+npx expo run:android
+# o
+npx expo run:ios
+```
 
-Join our community of developers creating universal apps.
+Perfil de desarrollo definido en `eas.json` (`development` con `developmentClient: true`).
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+---
+
+## Scripts disponibles
+
+| Script | Comando | Descripción |
+|--------|---------|-------------|
+| `start` | `npm start` | Inicia Expo (`expo start`) |
+| `android` | `npm run android` | Compila y ejecuta en Android |
+| `ios` | `npm run ios` | Compila y ejecuta en iOS |
+| `web` | `npm run web` | Modo web estático |
+| `lint` | `npm run lint` | ESLint con `eslint-config-expo` |
+| `reset-project` | `npm run reset-project` | Script de plantilla Expo (mueve código de ejemplo) |
+
+---
+
+## Estructura del proyecto
+
+```
+├── app/                    # Pantallas (Expo Router, file-based routing)
+│   ├── _layout.tsx         # Layout raíz: SQLite, tema, Stack
+│   ├── index.tsx           # Splash animado → login
+│   ├── login.tsx           # Inicio de sesión
+│   ├── register.tsx        # Registro de usuario
+│   ├── (tabs)/             # Navegación por pestañas
+│   │   ├── index.tsx       # Home: restaurantes y búsqueda
+│   │   ├── favoritos.tsx   # Lista de favoritos
+│   │   ├── perfil.tsx      # Perfil y cierre de sesión
+│   │   └── notifications.tsx  # Notificaciones (sin tab en barra)
+│   ├── restaurant/
+│   │   ├── [id].tsx        # Detalle dinámico por ID
+│   │   └── menu.tsx        # Menú del restaurante
+│   ├── ar/
+│   │   └── instructions.tsx   # Tutorial antes de AR
+│   ├── MapView.tsx         # Mapa con ruta
+│   └── rarv.tsx            # Visor 3D AR/VR
+├── components/             # UI reutilizable (cards, mapa, ModelViewer, etc.)
+├── constants/              # Colores, tipografía, modelos 3D
+├── hooks/                  # Lógica: BD, ubicación, restaurantes, rutas
+├── assets/                 # Imágenes y modelos `.glb`
+├── eas.json                # Perfiles EAS Build
+└── app.json                # Configuración Expo
+```
+
+Documentación detallada: [docs/ARQUITECTURA.md](./docs/ARQUITECTURA.md) y [docs/BASE_DE_DATOS.md](./docs/BASE_DE_DATOS.md).
+
+---
+
+## Flujo de la aplicación
+
+```mermaid
+flowchart TD
+    A[Splash app/index.tsx] --> B[Login]
+    B --> C{¿Sesión válida?}
+    C -->|Sí| D[(tabs) Home]
+    C -->|No| B
+    D --> E[Overpass: restaurantes cercanos]
+    E --> F[SQLite: cache local]
+    D --> G["/restaurant/:id"]
+    G --> H[Menú / Mapa / Favoritos]
+    H --> I[AR: instructions → rarv]
+```
+
+1. **Splash** (`app/index.tsx`): animación de marca y redirección a `/login`.
+2. **Login / registro**: credenciales en SQLite; sesión guardada en `AsyncStorage` bajo la clave `sesion`.
+3. **Home** (`app/(tabs)/index.tsx`): pide ubicación, consulta Overpass, sincroniza restaurantes en SQLite y muestra tarjetas.
+4. **Detalle** (`app/restaurant/[id].tsx`): consulta por `id_restaurante`, permite favoritos, menú y mapa.
+5. **AR**: desde el menú → instrucciones → `rarv` con modelo 3D según `AsyncStorage` (`moldelRA`).
+
+Guía paso a paso del enrutamiento dinámico: [explicacion_navegacion.md](./explicacion_navegacion.md).
+
+---
+
+## Tecnologías
+
+| Área | Librerías |
+|------|-----------|
+| Framework | Expo SDK 54, React 19, React Native 0.81 |
+| Navegación | Expo Router 6, React Navigation 7 |
+| Persistencia | expo-sqlite, AsyncStorage |
+| Ubicación | expo-location |
+| Mapas / rutas | Google Maps (Android), OSRM, hooks propios |
+| 3D / AR | three, @react-three/fiber, @react-three/drei, expo-gl, expo-camera |
+| UI | expo-linear-gradient, lucide-react-native, react-native-reanimated |
+| Tipado | TypeScript 5.9 |
+
+Alias de rutas: `@/*` → raíz del proyecto (`tsconfig.json`).
+
+---
+
+## Servicios externos
+
+| Servicio | Uso | Archivo relacionado |
+|----------|-----|------------------------|
+| Overpass API | Restaurantes en radio de 5 km | `hooks/useRestaurants.ts` |
+| OSRM | Geometría y duración de rutas | `hooks/useRoute.ts` |
+| Geocodificación inversa | Ciudad / dirección desde coordenadas | `hooks/reverseGeocode.ts` |
+| Google Maps | Mapa nativo en Android | `app.json`, `components/MapScreen.tsx` |
+
+---
+
+## Base de datos local
+
+- Archivo: `miapp.db` (gestionado por `SQLiteProvider` en `app/_layout.tsx`).
+- Inicialización: `hooks/dataBase.ts` → función `inicializarDB`.
+- Hook de acceso: `useBaseDeDatos()`.
+
+Esquema completo de tablas e índices: [docs/BASE_DE_DATOS.md](./docs/BASE_DE_DATOS.md).
+
+---
+
+## Build y despliegue (EAS)
+
+El proyecto incluye `eas.json` con perfiles:
+
+| Perfil | Uso |
+|--------|-----|
+| `development` | Cliente de desarrollo, distribución interna |
+| `preview` | Builds internas de prueba |
+| `production` | Producción con `autoIncrement` de versión |
+
+```bash
+# Instalar EAS CLI (global o npx)
+npx eas-cli login
+npx eas build --platform android --profile preview
+npx eas submit --platform android --profile production
+```
+
+`app.json` → `extra.eas.projectId` vincula el proyecto con Expo Application Services.
+
+---
+
+## Documentación adicional
+
+| Documento | Contenido |
+|-----------|-----------|
+| [docs/ARQUITECTURA.md](./docs/ARQUITECTURA.md) | Capas, pantallas, hooks y componentes |
+| [docs/BASE_DE_DATOS.md](./docs/BASE_DE_DATOS.md) | Esquema SQLite y operaciones |
+| [docs/DIAGRAMA_PANTALLAS.md](./docs/DIAGRAMA_PANTALLAS.md) | Diagrama de pantallas y flujos de navegación |
+| [explicacion_navegacion.md](./explicacion_navegacion.md) | Rutas dinámicas con Expo Router |
+
+---
+
+## Notas de seguridad
+
+- Las contraseñas se almacenan en texto plano en SQLite; **no es adecuado para producción**. Valorar hash (bcrypt/argon2) y autenticación en backend.
+- La API key de Google Maps en `app.json` debe rotarse si se expone públicamente y restringirse por paquete Android en Google Cloud Console.
+- Overpass y OSRM son servicios públicos con límites de uso; conviene cachear resultados y manejar errores de red.
+
+---
+
+## Licencia
+
+Proyecto privado (`"private": true` en `package.json`). Consultar al propietario del repositorio para términos de uso y distribución.

@@ -68,13 +68,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <User size={24} color={color} />,
         }}
       />
-      {/* Ocultar explore.tsx si existe en la plantilla por defecto */}
-      <Tabs.Screen
-        name="explore"
-        options={{
-          href: null,
-        }}
-      />
       <Tabs.Screen
         name="notifications"
         options={{

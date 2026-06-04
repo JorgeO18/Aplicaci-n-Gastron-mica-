@@ -34,9 +34,8 @@ export default function RootLayout() {
           <Stack.Screen name="register" options={{ headerShown: false }} />
           <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="restaurant/menu" options={{ headerShown: false }} />
-          <Stack.Screen name="restaurant/route" options={{ headerShown: false }} />
           <Stack.Screen name="ar/instructions" options={{ headerShown: false }} />
-          <Stack.Screen name="ar/view" options={{ headerShown: false }} />
+          <Stack.Screen name="rarv" options={{ headerShown: false }} />
           <Stack.Screen name="MapView" options={{ headerShown: false }} />
           
           <Stack.Screen name="index" options={{ headerShown: false }} />

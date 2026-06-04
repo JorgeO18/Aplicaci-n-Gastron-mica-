@@ -256,7 +256,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Barra de búsqueda */}
-        <SearchBar onPress={() => router.push("./search")} editable={false} />
+        <SearchBar  editable={false} />
 
         {/* Banner de oferta */}
         <TouchableOpacity style={styles.bannerContainer} activeOpacity={0.9}>
