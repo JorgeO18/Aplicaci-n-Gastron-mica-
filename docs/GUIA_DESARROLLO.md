@@ -27,12 +27,27 @@ No hay archivo `.env` en el proyecto actual. Las claves sensibles están en:
 
 ## Depuración por módulo
 
-### Restaurantes no aparecen
+### Restaurantes no aparecen en Home
 
 1. Comprobar permisos de ubicación en el dispositivo.
 2. Revisar logs de `useRestaurants` (status Overpass, cantidad de elementos).
 3. Verificar conexión a `https://overpass.kumi.systems/api/interpreter`.
-4. Confirmar que Home guarda filas en `restaurantes` tras `fetchRestaurants`.
+4. Confirmar que `bdCargadaRef` está en `true` antes del efecto de ubicación.
+5. Revisar `guardarRestaurants` en consola (`📦`, `✅`, `❌`).
+6. Si moviste el dispositivo menos de 5 km, Overpass no se vuelve a llamar (borrar `ubicacionUsuario` en AsyncStorage para forzar refresh).
+
+### Búsqueda por cocina no devuelve resultados
+
+1. El filtro usa `tipo_comida` / `cuisine`, no el nombre del restaurante.
+2. La búsqueda ignora mayúsculas y acentos (`normalizarTexto`).
+3. Si `restaurante` está vacío, primero resuelve la carga de Overpass/SQLite.
+
+### Perfil y contactos de emergencia
+
+1. El usuario debe existir en `sesion` (login previo).
+2. Editar perfil usa `actualizarUsuario`; el email debe ser único.
+3. La columna `ubicacion` se crea con migración en `inicializarDB`; reinstalar la app si la BD quedó corrupta.
+4. Contactos requieren nombre, relación y teléfono no vacíos.
 
 ### Favoritos no funcionan
 

@@ -7,7 +7,7 @@ import { Typography } from "@/constants/typography";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -26,6 +26,26 @@ import { useLocation } from "../../hooks/useLocation";
 import { Restaurant, useRestaurants } from "../../hooks/useRestaurants";
 
 const LOCAL_KEY = "ubicacionUsuario";
+
+function normalizarTexto(texto: string): string {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function filtrarPorCocina(
+  restaurantes: Restaurant[],
+  consulta: string,
+): Restaurant[] {
+  const termino = normalizarTexto(consulta.trim());
+  if (!termino) return restaurantes;
+
+  return restaurantes.filter((r) => {
+    const cocina = normalizarTexto(r.cuisine ?? "");
+    return cocina.includes(termino);
+  });
+}
 //---------------------------------------------------
 
 // Datos mock de restaurantes
@@ -73,6 +93,12 @@ export default function HomeScreen() {
     fetchRestaurants,
   } = useRestaurants();
   const [restaurante, setRestaurante] = useState<Restaurant[]>([]); //Donde se guardan los restaurantes para visualizar datos
+  const [busquedaCocina, setBusquedaCocina] = useState("");
+
+  const restaurantesFiltrados = useMemo(
+    () => filtrarPorCocina(restaurante, busquedaCocina),
+    [restaurante, busquedaCocina],
+  );
   const lastFetchRef = useRef<{ latitude: number; longitude: number } | null>(
     null,
   );
@@ -87,7 +113,7 @@ export default function HomeScreen() {
         setUser(u)
         
       }
-      console.log(user)
+     
       if (!isReady || !db) return;
 
       const result = await db.getAllAsync<Restaurant>(`
@@ -154,6 +180,7 @@ export default function HomeScreen() {
 
   // 3. Cuando llegan restaurantes de la API y la BD está lista, guardar y mostrar
   useEffect(() => {
+    
     if (!db || restaurants.length === 0) return;
     guardarRestaurants();
   }, [db, restaurants]);
@@ -256,7 +283,11 @@ export default function HomeScreen() {
         </View>
 
         {/* Barra de búsqueda */}
-        <SearchBar  editable={false} />
+        <SearchBar
+          placeholder="Buscar por tipo de comida..."
+          value={busquedaCocina}
+          onChangeText={setBusquedaCocina}
+        />
 
         {/* Banner de oferta */}
         <TouchableOpacity style={styles.bannerContainer} activeOpacity={0.9}>
@@ -303,7 +334,7 @@ export default function HomeScreen() {
                 name={restaurant.name}
                 image={restaurant.image}
                 // rating={restaurant.rating}
-                // distance={restaurant.distance}
+                distance={restaurant.distance}
                 // deliveryTime={restaurant.deliveryTime}
                 cuisine={restaurant.cuisine}
                 discount={restaurant.discount}
@@ -327,25 +358,28 @@ export default function HomeScreen() {
 // O (||) el arreglo de 'restaurante' todavía está vacío (longitud === 0)?*/}
 
           {loadingRe || restaurante.length === 0 ? (
-            // RESPUESTA AFIRMATIVA (Si se cumple alguna de las dos):
-            // Dibuja en la pantalla el ActivityIndicator (El circulito dando vueltas)
-
             <View style={styles.loaderContainer}>
               <ActivityIndicator size="large" color={Colors.primary} />
               <Text style={styles.loaderText}>Buscando restaurantes...</Text>
             </View>
+          ) : restaurantesFiltrados.length === 0 ? (
+            <View style={styles.loaderContainer}>
+              <Ionicons
+                name="search-outline"
+                size={40}
+                color={Colors.textLight}
+              />
+              <Text style={styles.loaderText}>
+                {`No hay restaurantes de tipo «${busquedaCocina}»`}
+              </Text>
+            </View>
           ) : (
-            // RESPUESTA NEGATIVA (Si ninguna de las dos se cumple):
-            // Empieza a dibujar la lista real de restaurantes usando .map()
-
-            restaurante.map((restaurant) => (
+            restaurantesFiltrados.map((restaurant) => (
               <RestaurantCard
                 key={restaurant.id}
                 name={restaurant.name}
                 image={require("../../assets/images/restaurant_banner.png")}
-                // rating={restaurant.rating}
-                // distance={restaurant.distance}
-                // deliveryTime={restaurant.deliveryTime}
+                distance={restaurant.address ?? ""}
                 cuisine={restaurant.cuisine ?? ""}
                 variant="horizontal"
                 onPress={() => router.push(`/restaurant/${restaurant.id}`)}

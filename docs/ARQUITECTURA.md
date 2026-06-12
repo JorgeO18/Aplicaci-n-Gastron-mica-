@@ -53,9 +53,9 @@ Pantalla oculta del tab bar (`href: null`): `notifications` (acceso desde el ico
 | `/` | `app/index.tsx` | Splash animado (Reanimated) |
 | `/login` | `app/login.tsx` | Email y contraseña → SQLite |
 | `/register` | `app/register.tsx` | Alta de usuario |
-| `/(tabs)` | `app/(tabs)/index.tsx` | Home: listado y búsqueda |
+| `/(tabs)` | `app/(tabs)/index.tsx` | Home: sync Overpass→SQLite, búsqueda por cocina, mocks |
 | `/(tabs)/favoritos` | `app/(tabs)/favoritos.tsx` | Restaurantes favoritos del usuario |
-| `/(tabs)/perfil` | `app/(tabs)/perfil.tsx` | Datos de sesión y logout |
+| `/(tabs)/perfil` | `app/(tabs)/perfil.tsx` | Edición de perfil, contactos de emergencia, logout |
 | `/(tabs)/notifications` | `app/(tabs)/notifications.tsx` | Notificaciones (sin tab visible) |
 | `/restaurant/[id]` | `app/restaurant/[id].tsx` | Detalle por `id` dinámico |
 | `/restaurant/menu` | `app/restaurant/menu.tsx` | Platos; enlace a AR |
@@ -77,8 +77,11 @@ Pantalla oculta del tab bar (`href: null`): `notifications` (acceso desde el ico
 
 | Export | Rol |
 |--------|-----|
-| `inicializarDB` | Crea tablas e índices al abrir la BD |
-| `useBaseDeDatos` | CRUD usuarios, favoritos, menú, demos de platos |
+| `inicializarDB` | Crea 9 tablas, índices y migra columna `usuarios.ubicacion` |
+| `useBaseDeDatos` | Usuarios, favoritos, menú, contactos de emergencia, demos |
+| `Usuarios`, `CampoUsuario`, `ContactoEmergencia` | Tipos TypeScript compartidos con Perfil |
+
+Ver referencia completa: [MODULOS_HOME_PERFIL_BD.md](./MODULOS_HOME_PERFIL_BD.md).
 
 ### `hooks/useRestaurants.ts`
 
@@ -125,26 +128,30 @@ Pantalla oculta del tab bar (`href: null`): `notifications` (acceso desde el ico
 
 ---
 
-## Flujo de datos: restaurantes
+## Flujo de datos: restaurantes (Home)
 
-1. `useLocation` entrega `latitude` / `longitude`.
-2. `useRestaurants.fetchRestaurants` consulta Overpass.
-3. Home persiste resultados en tabla `restaurantes` (upsert por `id_restaurante`).
-4. `insertarDemos` añade platos de ejemplo por restaurante.
-5. Detalle y menú leen desde SQLite; favoritos cruzan `usuarios` + `favoritos`.
+Implementado en `app/(tabs)/index.tsx`:
+
+1. Al montar: lee `sesion` y carga `restaurantes` desde SQLite.
+2. `useLocation` entrega coordenadas; si es la primera vez o el usuario se movió **> 5 km** (`ubicacionUsuario` en AsyncStorage), llama a Overpass.
+3. `guardarRestaurants`: por cada resultado, `reverseGeocode` opcional + `INSERT OR REPLACE` con `fuente = 'api'`.
+4. `insertarDemos` pobla menús demo; recarga lista en estado `restaurante`.
+5. `SearchBar` filtra en cliente por `tipo_comida` (normalización sin acentos).
+6. Sección «Los más visitados» usa datos mock locales (IDs 1–3); «Más restaurantes» usa SQLite.
 
 ```
-GPS → Overpass → estado React → SQLite → UI (cards, detalle, menú)
+GPS → (umbral 5 km) → Overpass → reverseGeocode → SQLite → filtro cocina → RestaurantCard
 ```
 
 ---
 
-## Flujo de sesión
+## Flujo de sesión y perfil
 
 1. `registrarUsuario` / `iniciarSesion` en `useBaseDeDatos`.
-2. Tras login exitoso, se guarda el usuario en `AsyncStorage` (`sesion`).
-3. Pantallas leen `sesion` para `id_usuario` en favoritos y perfil.
-4. Logout en perfil: `AsyncStorage.removeItem` + `router.replace('/login')`.
+2. Tras login, usuario completo en `AsyncStorage` (`sesion`).
+3. **Home** saluda con `user.nombre`; **Perfil** permite editar `nombre`, `email`, `telefono`, `ubicacion` vía `actualizarUsuario` y sincroniza `sesion`.
+4. **Perfil** gestiona `contactos_emergencia` (alta y llamada con `Linking`).
+5. Logout: `AsyncStorage.removeItem('sesion')` + `router.replace('/login')`.
 
 ---
 

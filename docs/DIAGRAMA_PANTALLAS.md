@@ -116,9 +116,9 @@ sequenceDiagram
 | `/` | `app/index.tsx` | Splash animado → login |
 | `/login` | `app/login.tsx` | Inicio de sesión |
 | `/register` | `app/register.tsx` | Registro de usuario |
-| `/(tabs)` | `app/(tabs)/index.tsx` | Home, restaurantes, búsqueda |
+| `/(tabs)` | `app/(tabs)/index.tsx` | Home: sync Overpass/SQLite, búsqueda por cocina |
 | `/(tabs)/favoritos` | `app/(tabs)/favoritos.tsx` | Favoritos del usuario |
-| `/(tabs)/perfil` | `app/(tabs)/perfil.tsx` | Perfil y logout |
+| `/(tabs)/perfil` | `app/(tabs)/perfil.tsx` | Edición de perfil, contactos de emergencia, logout |
 | `/(tabs)/notifications` | `app/(tabs)/notifications.tsx` | Notificaciones (sin tab) |
 | `/restaurant/[id]` | `app/restaurant/[id].tsx` | Detalle del restaurante |
 | `/restaurant/menu` | `app/restaurant/menu.tsx` | Menú y platos |

@@ -10,7 +10,7 @@ interface RestaurantCardProps {
   name: string;
   image: ImageSourcePropType;
   // rating: number;
-  // distance: string;
+  distance: string;
   // deliveryTime: string;
   cuisine: string;
   onPress?: () => void;
@@ -22,7 +22,7 @@ export default function RestaurantCard({
   name,
   image,
   // rating,
-  // distance,
+  distance,
   // deliveryTime,
   cuisine,
   onPress,
@@ -37,13 +37,13 @@ export default function RestaurantCard({
           <Text style={styles.name} numberOfLines={1}>{name}</Text>
           <Text style={styles.cuisine}>{cuisine}</Text>
           <View style={styles.statsRow}>
-            {/* <View style={styles.stat}>
-              <Ionicons name="star" size={14} color="#FFB800" />
-              <Text style={styles.statText}>{rating}</Text>
-            </View>
             <View style={styles.stat}>
               <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
               <Text style={styles.statText}>{distance}</Text>
+            </View>
+            {/* <View style={styles.stat}>
+              <Ionicons name="star" size={14} color="#FFB800" />
+              <Text style={styles.statText}>{rating}</Text>
             </View>
             <View style={styles.stat}>
               <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />

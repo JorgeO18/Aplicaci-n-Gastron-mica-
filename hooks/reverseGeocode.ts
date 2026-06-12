@@ -39,7 +39,8 @@ export async function reverseGeocode(
 
   try {
     // Photon: misma idea que Nominatim, sin rate limiting agresivo
-    const url = `${PHOTON_URL}?lat=${lat}&lon=${lon}&lang=es`;
+    // Photon solo admite: default, de, en, fr (no español)
+    const url = `${PHOTON_URL}?lat=${lat}&lon=${lon}`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -48,10 +49,10 @@ export async function reverseGeocode(
       },
     });
 
-    // if (!response.ok) {
-    //   console.error(`Photon HTTP ${response.status}`);
-    //   return null;
-    // }
+    if (!response.ok) {
+      console.error(`reverseGeocode: Photon HTTP ${response.status}`);
+      return null;
+    }
 
     const data = await response.json();
 

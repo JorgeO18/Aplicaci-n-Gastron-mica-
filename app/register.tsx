@@ -60,10 +60,10 @@ export default function RegisterScreen() {
         
         const user = {nombre : nombre, email : correo, password : contraseña, fecha_nacimiento : birthDate.toISOString(), telefono : numero}
 
-        const {mensaje , state} = await registrarUsuario(user)
+        const { mensaje, state, usuario } = await registrarUsuario(user)
         alert(mensaje)
-        if (state) {
-          await AsyncStorage.setItem(localSesion,JSON.stringify(user))
+        if (state && usuario) {
+          await AsyncStorage.setItem(localSesion, JSON.stringify(usuario))
           router.replace('./(tabs)')
         }
       }

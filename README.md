@@ -31,14 +31,17 @@
 
 ## Características principales
 
-- **Descubrimiento de restaurantes**: búsqueda de establecimientos cercanos mediante la API [Overpass](https://wiki.openstreetmap.org/wiki/Overpass_API) (OpenStreetMap).
-- **Geolocalización**: obtención de la ubicación del usuario, geocodificación inversa y cálculo de distancias.
+- **Descubrimiento de restaurantes**: sincronización con [Overpass](https://wiki.openstreetmap.org/wiki/Overpass_API) (radio 5 km), caché en SQLite y refresco solo si el usuario se desplaza más de 5 km.
+- **Búsqueda en Home**: filtro en tiempo real por tipo de comida (`cuisine`), sin acentos.
+- **Geolocalización**: GPS, geocodificación inversa al guardar restaurantes y umbral de movimiento de 5 km.
 - **Detalle de restaurante**: ficha con información, favoritos y acceso al menú.
 - **Menú y platos**: listado desde SQLite con datos de demostración (platos regionales colombianos).
 - **Favoritos**: persistencia por usuario en base de datos local.
 - **Rutas**: cálculo de trayectos con [OSRM](https://project-osrm.org/) y visualización en mapa (Google Maps en Android).
 - **Realidad aumentada / virtual**: visualización de modelos 3D (`.glb`) con `@react-three/fiber`, `expo-gl` y cámara.
-- **Autenticación local**: registro e inicio de sesión con usuarios almacenados en SQLite y sesión en `AsyncStorage`.
+- **Autenticación local**: registro e inicio de sesión con usuarios en SQLite y sesión en `AsyncStorage`.
+- **Perfil editable**: nombre, correo, teléfono y ubicación; sincronización con BD y `sesion`.
+- **Contactos de emergencia**: alta en Perfil, listado y llamada directa desde la app.
 
 ---
 
@@ -148,9 +151,10 @@ flowchart TD
 
 1. **Splash** (`app/index.tsx`): animación de marca y redirección a `/login`.
 2. **Login / registro**: credenciales en SQLite; sesión guardada en `AsyncStorage` bajo la clave `sesion`.
-3. **Home** (`app/(tabs)/index.tsx`): pide ubicación, consulta Overpass, sincroniza restaurantes en SQLite y muestra tarjetas.
-4. **Detalle** (`app/restaurant/[id].tsx`): consulta por `id_restaurante`, permite favoritos, menú y mapa.
-5. **AR**: desde el menú → instrucciones → `rarv` con modelo 3D según `AsyncStorage` (`moldelRA`).
+3. **Home** (`app/(tabs)/index.tsx`): carga SQLite, sincroniza Overpass si hace falta, filtra por cocina y muestra tarjetas (mock + API).
+4. **Perfil** (`app/(tabs)/perfil.tsx`): edita datos del usuario y gestiona contactos de emergencia.
+5. **Detalle** (`app/restaurant/[id].tsx`): consulta por `id_restaurante`, favoritos, menú y mapa.
+6. **AR**: menú → instrucciones → `rarv` con modelo 3D (`moldelRA` en AsyncStorage).
 
 Guía paso a paso del enrutamiento dinámico: [explicacion_navegacion.md](./explicacion_navegacion.md).
 
@@ -220,6 +224,7 @@ npx eas submit --platform android --profile production
 | Documento | Contenido |
 |-----------|-----------|
 | [docs/ARQUITECTURA.md](./docs/ARQUITECTURA.md) | Capas, pantallas, hooks y componentes |
+| [docs/MODULOS_HOME_PERFIL_BD.md](./docs/MODULOS_HOME_PERFIL_BD.md) | Home, Perfil y `hooks/dataBase.ts` en detalle |
 | [docs/BASE_DE_DATOS.md](./docs/BASE_DE_DATOS.md) | Esquema SQLite y operaciones |
 | [docs/DIAGRAMA_PANTALLAS.md](./docs/DIAGRAMA_PANTALLAS.md) | Diagrama de pantallas y flujos de navegación |
 | [explicacion_navegacion.md](./explicacion_navegacion.md) | Rutas dinámicas con Expo Router |

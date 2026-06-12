@@ -8,6 +8,11 @@ import {
   TouchableOpacity,
   Linking,
   Image,
+  Modal,
+  TextInput,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,26 +21,157 @@ import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import { Usuarios } from "../../hooks/dataBase";
+import {
+  CampoUsuario,
+  ContactoEmergencia,
+  Usuarios,
+  useBaseDeDatos,
+} from "../../hooks/dataBase";
+import { reverseGeocode } from "../../hooks/reverseGeocode";
+import { useLocation } from "../../hooks/useLocation";
 
+const LOCAL_KEY = "ubicacionUsuario";
 
-
-const emergencyContacts = [
-  { name: "Carla Rodríguez", relation: "Esposa", phone: "+57 320 456 7890" },
-  { name: "Marta López", relation: "Madre", phone: "+57 318 234 5678" },
-];
+const CAMPOS_EDITABLES: Record<CampoUsuario, { label: string; teclado: "default" | "email-address" | "phone-pad" }> = {
+  nombre: { label: "Nombre", teclado: "default" },
+  email: { label: "Correo electrónico", teclado: "email-address" },
+  telefono: { label: "Teléfono", teclado: "phone-pad" },
+  ubicacion: { label: "Ubicación", teclado: "default" },
+};
 
 export default function ProfileScreen() {
   const localSesion = "sesion";
+  const {
+    actualizarUsuario,
+    agregarContactoEmergencia,
+    listarContactosEmergencia,
+    obtenerUsuarioPorId,
+    obtenerUsuarioCorreo,
+  } = useBaseDeDatos();
   const [user, setUser] = useState<Usuarios | null>(null);
+  const [contactos, setContactos] = useState<ContactoEmergencia[]>([]);
+  const [campoEditando, setCampoEditando] = useState<CampoUsuario | null>(null);
+  const [valorEditando, setValorEditando] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [modalContactoVisible, setModalContactoVisible] = useState(false);
+  const [nuevoContacto, setNuevoContacto] = useState({
+    nombre: "",
+    relacion: "",
+    telefono: "",
+  });
+  const [guardandoContacto, setGuardandoContacto] = useState(false);
+  const { location } = useLocation();
+  const [ubicacion, setUbicacion] = useState("");
+
+  const cargarContactos = async (idUsuario: number) => {
+    const lista = await listarContactosEmergencia(idUsuario);
+    setContactos(lista);
+  };
+
+  useEffect(() => {
+    const cargarUbicacion = async () => {
+      const ubi = await AsyncStorage.getItem(LOCAL_KEY);
+      const coords = ubi
+        ? (JSON.parse(ubi) as { latitude: number; longitude: number })
+        : location;
+
+      if (!coords?.latitude || !coords?.longitude) return;
+
+      const ub = await reverseGeocode(coords.latitude, coords.longitude);
+      if (ub) setUbicacion(ub.displayName);
+    };
+    cargarUbicacion();
+  }, [location]);
+
   useEffect(() => {
     const datosUsuario = async () => {
       const isLogin = await AsyncStorage.getItem(localSesion);
-      const u: Usuarios = JSON.parse(isLogin!);
-      setUser(u);
+      if (!isLogin) return;
+
+      const sesion: Usuarios = JSON.parse(isLogin);
+      let usuarioDb =
+        (sesion.id_usuario
+          ? await obtenerUsuarioPorId(Number(sesion.id_usuario))
+          : undefined) ??
+        (sesion.email ? await obtenerUsuarioCorreo(sesion.email) : undefined);
+
+      if (usuarioDb) {
+        setUser(usuarioDb);
+        await AsyncStorage.setItem(localSesion, JSON.stringify(usuarioDb));
+        await cargarContactos(Number(usuarioDb.id_usuario));
+        return;
+      }
+
+      setUser(sesion);
+      if (sesion.id_usuario) {
+        await cargarContactos(Number(sesion.id_usuario));
+      }
+      
     };
-    datosUsuario()
-  });
+    datosUsuario();
+  }, []);
+
+  const abrirEdicion = (campo: CampoUsuario) => {
+    if (!user) return;
+    setCampoEditando(campo);
+    setValorEditando(user[campo] ?? "");
+  };
+
+  const cerrarEdicion = () => {
+    setCampoEditando(null);
+    setValorEditando("");
+  };
+
+  const guardarCampo = async () => {
+    if (!user || !campoEditando) return;
+
+    setGuardando(true);
+    const resultado = await actualizarUsuario(
+      Number(user.id_usuario),
+      campoEditando,
+      valorEditando,
+      user.email
+    );
+    setGuardando(false);
+
+    if (!resultado.state || !resultado.usuario) {
+      Alert.alert("Error", resultado.mensaje);
+      return;
+    }
+
+    setUser(resultado.usuario);
+    await AsyncStorage.setItem(localSesion, JSON.stringify(resultado.usuario));
+    cerrarEdicion();
+  };
+
+  const abrirModalContacto = () => {
+    setNuevoContacto({ nombre: "", relacion: "", telefono: "" });
+    setModalContactoVisible(true);
+  };
+
+  const cerrarModalContacto = () => {
+    setModalContactoVisible(false);
+    setNuevoContacto({ nombre: "", relacion: "", telefono: "" });
+  };
+
+  const guardarContacto = async () => {
+    if (!user) return;
+
+    setGuardandoContacto(true);
+    const resultado = await agregarContactoEmergencia(
+      Number(user.id_usuario),
+      nuevoContacto
+    );
+    setGuardandoContacto(false);
+
+    if (!resultado.state) {
+      Alert.alert("Error", resultado.mensaje);
+      return;
+    }
+
+    await cargarContactos(user.id_usuario);
+    cerrarModalContacto();
+  };
 
   const handleCall = (phone: string) => {
     Linking.openURL(`tel:${phone}`).catch(console.error);
@@ -79,7 +215,11 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información Personal</Text>
           
-          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.fieldRow}
+            activeOpacity={0.7}
+            onPress={() => abrirEdicion("nombre")}
+          >
             <View style={styles.fieldIcon}>
               <Ionicons name="person-outline" size={20} color={Colors.primary} />
             </View>
@@ -87,10 +227,14 @@ export default function ProfileScreen() {
               <Text style={styles.fieldLabel}>Nombre</Text>
               <Text style={styles.fieldValue}>{user?.nombre ?? "Cargando..."}</Text>
             </View>
-            
+            <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.fieldRow}
+            activeOpacity={0.7}
+            onPress={() => abrirEdicion("email")}
+          >
             <View style={styles.fieldIcon}>
               <Ionicons name="mail-outline" size={20} color={Colors.primary} />
             </View>
@@ -98,30 +242,37 @@ export default function ProfileScreen() {
               <Text style={styles.fieldLabel}>Correo electrónico</Text>
               <Text style={styles.fieldValue}>{user?.email ?? "Cargando..."}</Text>
             </View>
-            
+            <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.fieldRow}
+            activeOpacity={0.7}
+            onPress={() => abrirEdicion("telefono")}
+          >
             <View style={styles.fieldIcon}>
               <Ionicons name="call-outline" size={20} color={Colors.primary} />
             </View>
             <View style={styles.fieldContent}>
               <Text style={styles.fieldLabel}>Teléfono</Text>
-              {/* @ts-ignore - Si en el futuro agregas teléfono a la BD, aquí se mostrará */}
-              <Text style={styles.fieldValue}>{user?.telefono ?? "+57 315 234 5678"}</Text>
+              <Text style={styles.fieldValue}>{user?.telefono || "Sin teléfono"}</Text>
             </View>
-            
+            <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.fieldRow}
+            activeOpacity={0.7}
+            onPress={() => abrirEdicion("ubicacion")}
+          >
             <View style={styles.fieldIcon}>
               <Ionicons name="location-outline" size={20} color={Colors.primary} />
             </View>
             <View style={styles.fieldContent}>
               <Text style={styles.fieldLabel}>Ubicación</Text>
-              <Text style={styles.fieldValue}>Sincelejo, Sucre</Text>
+              <Text style={styles.fieldValue}>{ubicacion || "Sin ubicación"}</Text>
             </View>
-            
+            <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
           </TouchableOpacity>
         </View>
 
@@ -129,34 +280,41 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Contactos de Emergencia</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={abrirModalContacto}>
               <Text style={styles.addButtonText}>+ Agregar</Text>
             </TouchableOpacity>
           </View>
-          {emergencyContacts.map((contact, index) => (
-            <View key={index} style={styles.contactCard}>
-              <View style={styles.contactInfo}>
-                <View style={styles.contactIcon}>
-                  <Ionicons
-                    name="alert-circle-outline"
-                    size={24}
-                    color="#ef4444"
-                  />
+          {contactos.length === 0 ? (
+            <Text style={styles.emptyContacts}>
+              No tienes contactos de emergencia. Toca + Agregar para crear uno.
+            </Text>
+          ) : (
+            contactos.map((contact) => (
+              <View key={contact.id_contacto} style={styles.contactCard}>
+                <View style={styles.contactInfo}>
+                  <View style={styles.contactIcon}>
+                    <Ionicons
+                      name="alert-circle-outline"
+                      size={24}
+                      color="#ef4444"
+                    />
+                  </View>
+                  <View>
+                    <Text style={styles.contactName}>{contact.nombre}</Text>
+                    <Text style={styles.contactRelation}>{contact.relacion}</Text>
+                    <Text style={styles.contactPhone}>{contact.telefono}</Text>
+                  </View>
                 </View>
-                <View>
-                  <Text style={styles.contactName}>{contact.name}</Text>
-                  <Text style={styles.contactRelation}>{contact.relation}</Text>
-                </View>
+                <TouchableOpacity
+                  style={styles.callButton}
+                  onPress={() => handleCall(contact.telefono)}
+                >
+                  <Ionicons name="call" size={18} color={Colors.textWhite} />
+                  <Text style={styles.callButtonText}>Llamar</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={styles.callButton}
-                onPress={() => handleCall(contact.phone)}
-              >
-                <Ionicons name="call" size={18} color={Colors.textWhite} />
-                <Text style={styles.callButtonText}>Llamar</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+            ))
+          )}
         </View>
 
         {/* General */}
@@ -275,6 +433,99 @@ export default function ProfileScreen() {
 
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
+
+      <Modal
+        visible={modalContactoVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={cerrarModalContacto}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Nuevo contacto de emergencia</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={nuevoContacto.nombre}
+              onChangeText={(text) => setNuevoContacto((prev) => ({ ...prev, nombre: text }))}
+              placeholder="Nombre completo"
+              placeholderTextColor={Colors.textLight}
+            />
+            <TextInput
+              style={styles.modalInput}
+              value={nuevoContacto.relacion}
+              onChangeText={(text) => setNuevoContacto((prev) => ({ ...prev, relacion: text }))}
+              placeholder="Relación (ej. Madre, Esposo)"
+              placeholderTextColor={Colors.textLight}
+            />
+            <TextInput
+              style={styles.modalInput}
+              value={nuevoContacto.telefono}
+              onChangeText={(text) => setNuevoContacto((prev) => ({ ...prev, telefono: text }))}
+              placeholder="Teléfono"
+              placeholderTextColor={Colors.textLight}
+              keyboardType="phone-pad"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalBtnCancel} onPress={cerrarModalContacto}>
+                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtnSave, guardandoContacto && styles.modalBtnDisabled]}
+                onPress={guardarContacto}
+                disabled={guardandoContacto}
+              >
+                <Text style={styles.modalBtnSaveText}>
+                  {guardandoContacto ? "Guardando..." : "Agregar"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal
+        visible={campoEditando !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={cerrarEdicion}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>
+              Editar {campoEditando ? CAMPOS_EDITABLES[campoEditando].label : ""}
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              value={valorEditando}
+              onChangeText={setValorEditando}
+              keyboardType={campoEditando ? CAMPOS_EDITABLES[campoEditando].teclado : "default"}
+              autoCapitalize={campoEditando === "email" ? "none" : "sentences"}
+              placeholder={`Ingresa tu ${campoEditando ? CAMPOS_EDITABLES[campoEditando].label.toLowerCase() : "dato"}`}
+              placeholderTextColor={Colors.textLight}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalBtnCancel} onPress={cerrarEdicion}>
+                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtnSave, guardando && styles.modalBtnDisabled]}
+                onPress={guardarCampo}
+                disabled={guardando}
+              >
+                <Text style={styles.modalBtnSaveText}>
+                  {guardando ? "Guardando..." : "Guardar"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -438,6 +689,17 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.sm,
     color: Colors.textSecondary,
   },
+  contactPhone: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textLight,
+    marginTop: 2,
+  },
+  emptyContacts: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    paddingVertical: Spacing.lg,
+  },
   callButton: {
     backgroundColor: "#ef4444",
     flexDirection: "row",
@@ -472,5 +734,58 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.base,
     fontWeight: Typography.weights.medium,
     color: Colors.textPrimary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    paddingHorizontal: Spacing.lg,
+  },
+  modalCard: {
+    backgroundColor: Colors.card,
+    borderRadius: Spacing.borderRadius.lg,
+    padding: Spacing.lg,
+  },
+  modalTitle: {
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.weights.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    borderRadius: Spacing.borderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: Typography.sizes.base,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.lg,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: Spacing.sm,
+  },
+  modalBtnCancel: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  modalBtnCancelText: {
+    color: Colors.textSecondary,
+    fontWeight: Typography.weights.medium,
+  },
+  modalBtnSave: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Spacing.borderRadius.full,
+  },
+  modalBtnDisabled: {
+    opacity: 0.6,
+  },
+  modalBtnSaveText: {
+    color: Colors.textWhite,
+    fontWeight: Typography.weights.bold,
   },
 });

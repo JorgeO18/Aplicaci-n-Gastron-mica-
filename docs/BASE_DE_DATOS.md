@@ -26,6 +26,7 @@ erDiagram
     usuarios ||--o{ favoritos : guarda
     usuarios ||--o{ historial_busquedas : realiza
     usuarios ||--o{ rutas : consulta
+    usuarios ||--o{ contactos_emergencia : registra
     restaurantes ||--o{ platos : ofrece
     restaurantes ||--o{ favoritos : es_favorito
     restaurantes ||--o{ rutas : destino
@@ -68,7 +69,23 @@ Almacena establecimientos sincronizados desde Overpass o datos locales.
 | `password` | TEXT NOT NULL | ⚠️ texto plano |
 | `fecha_nacimiento` | TEXT | |
 | `telefono` | TEXT | |
+| `ubicacion` | TEXT | Añadida por migración `ALTER TABLE`; editable en Perfil |
 | `fecha_registro` | TEXT | Default `CURRENT_TIMESTAMP` |
+
+---
+
+### `contactos_emergencia`
+
+Contactos de emergencia asociados al usuario (gestionados en Perfil).
+
+| Columna | Tipo | Notas |
+|---------|------|--------|
+| `id_contacto` | INTEGER PK AUTOINCREMENT | |
+| `id_usuario` | INTEGER FK → usuarios | `ON DELETE CASCADE` |
+| `nombre` | TEXT NOT NULL | |
+| `relacion` | TEXT NOT NULL | Ej. Madre, Esposo |
+| `telefono` | TEXT NOT NULL | Usado con `Linking.openURL('tel:...')` |
+| `fecha_creacion` | TEXT | Default `CURRENT_TIMESTAMP` |
 
 ---
 
@@ -167,6 +184,19 @@ Historial de consultas de ruta hacia un restaurante.
 | `idx_platos_restaurante` | platos | `id_restaurante` |
 | `idx_favoritos_usuario` | favoritos | `id_usuario` |
 | `idx_historial_usuario` | historial_busquedas | `id_usuario` |
+| `idx_contactos_usuario` | contactos_emergencia | `id_usuario` |
+
+---
+
+## Migraciones
+
+Tras crear las tablas, `inicializarDB` ejecuta:
+
+```sql
+ALTER TABLE usuarios ADD COLUMN ubicacion TEXT
+```
+
+Si la columna ya existe (instalación previa), el error se ignora silenciosamente.
 
 ---
 
@@ -179,6 +209,9 @@ Funciones expuestas al resto de la app:
 | `insertarDemos(rest)` | Inserta categorías y platos demo para cada `Restaurant` |
 | `registrarUsuario(user)` | Alta; devuelve `{ mensaje, state }` |
 | `iniciarSesion(correo, contraseña)` | Devuelve fila de usuario o `false` |
+| `actualizarUsuario(id, campo, valor)` | Actualiza `nombre`, `email`, `telefono` o `ubicacion`; valida email único |
+| `agregarContactoEmergencia(id, contacto)` | INSERT en `contactos_emergencia`; valida campos |
+| `listarContactosEmergencia(idUsuario)` | Lista ordenada por fecha descendente |
 | `agregarFavoritos(idRest, idUser)` | INSERT en favoritos |
 | `eliminarFavoritos(idRest, idUser)` | DELETE |
 | `estaEnFavoritos(idRest, idUser)` | `boolean` |
@@ -187,6 +220,8 @@ Funciones expuestas al resto de la app:
 | `obtenerUsuarioCorreo(email)` | Usuario por email |
 
 Acceso directo: `db` (instancia `SQLiteDatabase`) e `isReady: true` cuando el provider está montado.
+
+Documentación de uso en pantallas: [MODULOS_HOME_PERFIL_BD.md](./MODULOS_HOME_PERFIL_BD.md).
 
 ---
 
@@ -224,6 +259,42 @@ SELECT r.id_restaurante AS id, r.nombre AS nombre,
 FROM restaurantes r
 INNER JOIN favoritos f ON r.id_restaurante = f.id_restaurante
 WHERE f.id_usuario = ?
+```
+
+### Home — listado de restaurantes
+
+```sql
+SELECT
+  id_restaurante AS id, nombre AS name, descripcion AS description,
+  tipo_comida AS cuisine, direccion AS address, ciudad,
+  latitud AS latitude, longitud AS longitude,
+  imagen_url AS image, telefono AS phone, horario AS openingHours, fuente
+FROM restaurantes
+```
+
+### Home — upsert desde Overpass
+
+```sql
+INSERT OR REPLACE INTO restaurantes
+  (id_restaurante, nombre, descripcion, tipo_comida, direccion, ciudad,
+   latitud, longitud, imagen_url, telefono, horario, fuente)
+VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+-- fuente = 'api'
+```
+
+### Perfil — contactos de emergencia
+
+```sql
+SELECT * FROM contactos_emergencia
+WHERE id_usuario = ?
+ORDER BY fecha_creacion DESC
+```
+
+### Perfil — actualizar campo de usuario
+
+```sql
+UPDATE usuarios SET {campo} = ? WHERE id_usuario = ?
+-- campo ∈ nombre | email | telefono | ubicacion
 ```
 
 ---

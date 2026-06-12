@@ -9,7 +9,10 @@ export interface Usuarios {
     password: string;
     fecha_nacimiento: string;
     telefono: string;
+    ubicacion?: string;
 }
+
+export type CampoUsuario = 'nombre' | 'email' | 'telefono' | 'ubicacion';
 interface UsuariosI {
     nombre: string;
     email: string;
@@ -33,6 +36,20 @@ export interface Favoritos {
     nombre: string;
     image: string;
     ciudad: string;
+    telefono: string;
+}
+
+export interface ContactoEmergencia {
+    id_contacto: number;
+    id_usuario: number;
+    nombre: string;
+    relacion: string;
+    telefono: string;
+}
+
+export interface ContactoEmergenciaInput {
+    nombre: string;
+    relacion: string;
     telefono: string;
 }
 
@@ -126,10 +143,26 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
             FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
             FOREIGN KEY (id_restaurante) REFERENCES restaurantes(id_restaurante) ON DELETE CASCADE
         );
+        CREATE TABLE IF NOT EXISTS contactos_emergencia (
+            id_contacto INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_usuario INTEGER NOT NULL,
+            nombre TEXT NOT NULL,
+            relacion TEXT NOT NULL,
+            telefono TEXT NOT NULL,
+            fecha_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+        );
         CREATE INDEX IF NOT EXISTS idx_platos_restaurante ON platos(id_restaurante);
         CREATE INDEX IF NOT EXISTS idx_favoritos_usuario ON favoritos(id_usuario);
         CREATE INDEX IF NOT EXISTS idx_historial_usuario ON historial_busquedas(id_usuario);
+        CREATE INDEX IF NOT EXISTS idx_contactos_usuario ON contactos_emergencia(id_usuario);
     `);
+
+    try {
+        await database.execAsync(`ALTER TABLE usuarios ADD COLUMN ubicacion TEXT`);
+    } catch {
+        // La columna ya existe en instalaciones previas
+    }
 }
 
 // ✅ Hook que reemplaza useBaseDeDatos — usa el contexto del provider
@@ -180,11 +213,15 @@ export function useBaseDeDatos() {
         if (existeCorreo) {
             return { mensaje: 'Correo ya registrado, intente otro o inicie sesión', state: false };
         }
-        await db.runAsync(
+        const resultado = await db.runAsync(
             `INSERT INTO usuarios (nombre, email, password, fecha_nacimiento, telefono) VALUES (?, ?, ?, ?, ?)`,
             [user.nombre, user.email, user.password, user.fecha_nacimiento, user.telefono]
         );
-        return { mensaje: 'Registro exitoso', state: true };
+        const usuario = await db.getFirstAsync<Usuarios>(
+            `SELECT * FROM usuarios WHERE id_usuario = ?`,
+            [resultado.lastInsertRowId]
+        );
+        return { mensaje: 'Registro exitoso', state: true, usuario: usuario ?? undefined };
     };
 
     const iniciarSesion = async (correo: string, contraseña: string) => {
@@ -259,11 +296,142 @@ export function useBaseDeDatos() {
     };
     const obtenerUsuarioCorreo = async (email: string) => {
         try {
-            return await db.getFirstAsync<Usuarios>(`SELECT * FROM usuarios WHERE email = ?`, [email])
+            return await db.getFirstAsync<Usuarios>(
+                `SELECT * FROM usuarios WHERE email = ?`,
+                [email.trim()]
+            ) ?? undefined;
         } catch (error) {
-
+            console.log('Error al obtener usuario por correo:', error);
+            return undefined;
         }
-    }
+    };
+
+    const obtenerUsuarioPorId = async (idUsuario: number) => {
+        const id = Number(idUsuario);
+        if (!id || Number.isNaN(id)) return undefined;
+
+        try {
+            return await db.getFirstAsync<Usuarios>(
+                `SELECT * FROM usuarios WHERE id_usuario = ?`,
+                [id]
+            ) ?? undefined;
+        } catch (error) {
+            console.log('Error al obtener usuario por id:', error);
+            return undefined;
+        }
+    };
+
+    const agregarContactoEmergencia = async (
+        idUsuario: number,
+        contacto: ContactoEmergenciaInput
+    ): Promise<{ mensaje: string; state: boolean; contacto?: ContactoEmergencia }> => {
+        const nombre = contacto.nombre.trim();
+        const relacion = contacto.relacion.trim();
+        const telefono = contacto.telefono.trim();
+
+        if (!nombre || !relacion || !telefono) {
+            return { mensaje: 'Completa todos los campos del contacto', state: false };
+        }
+
+        try {
+            const resultado = await db.runAsync(
+                `INSERT INTO contactos_emergencia (id_usuario, nombre, relacion, telefono) VALUES (?, ?, ?, ?)`,
+                [idUsuario, nombre, relacion, telefono]
+            );
+
+            const nuevoContacto = await db.getFirstAsync<ContactoEmergencia>(
+                `SELECT * FROM contactos_emergencia WHERE id_contacto = ?`,
+                [resultado.lastInsertRowId]
+            );
+
+            return {
+                mensaje: 'Contacto agregado',
+                state: true,
+                contacto: nuevoContacto ?? undefined,
+            };
+        } catch (error) {
+            console.log('Error al agregar contacto de emergencia:', error);
+            return { mensaje: 'No se pudo agregar el contacto', state: false };
+        }
+    };
+
+    const listarContactosEmergencia = async (idUsuario: number): Promise<ContactoEmergencia[]> => {
+        try {
+            return await db.getAllAsync<ContactoEmergencia>(
+                `SELECT * FROM contactos_emergencia WHERE id_usuario = ? ORDER BY fecha_creacion DESC`,
+                [idUsuario]
+            ) ?? [];
+        } catch (error) {
+            console.log('Error al listar contactos de emergencia:', error);
+            return [];
+        }
+    };
+
+    const actualizarUsuario = async (
+        idUsuario: number,
+        campo: CampoUsuario,
+        valor: string,
+        emailRespaldo?: string
+    ): Promise<{ mensaje: string; state: boolean; usuario?: Usuarios }> => {
+        const valorLimpio = valor.trim();
+        if (!valorLimpio) {
+            return { mensaje: 'El campo no puede estar vacío', state: false };
+        }
+
+        try {
+            let id = Number(idUsuario);
+            if (!id || Number.isNaN(id)) {
+                if (emailRespaldo) {
+                    const porCorreo = await obtenerUsuarioCorreo(emailRespaldo);
+                    id = Number(porCorreo?.id_usuario);
+                }
+            }
+
+            if (!id || Number.isNaN(id)) {
+                return {
+                    mensaje: 'Sesión inválida. Cierra sesión e ingresa de nuevo.',
+                    state: false,
+                };
+            }
+
+            const usuarioExistente = await obtenerUsuarioPorId(id);
+            if (!usuarioExistente) {
+                return {
+                    mensaje: 'No se encontró el usuario. Cierra sesión e ingresa de nuevo.',
+                    state: false,
+                };
+            }
+
+            if (campo === 'email') {
+                const correoExistente = await db.getFirstAsync(
+                    `SELECT id_usuario FROM usuarios WHERE email = ? AND id_usuario != ?`,
+                    [valorLimpio, id]
+                );
+                if (correoExistente) {
+                    return { mensaje: 'Este correo ya está registrado', state: false };
+                }
+            }
+
+            const resultado = await db.runAsync(
+                `UPDATE usuarios SET ${campo} = ? WHERE id_usuario = ?`,
+                [valorLimpio, id]
+            );
+
+            if (resultado.changes === 0) {
+                return { mensaje: 'No se pudo actualizar el usuario', state: false };
+            }
+
+            const usuario = await obtenerUsuarioPorId(id);
+            if (!usuario) {
+                return { mensaje: 'No se encontró el usuario', state: false };
+            }
+
+            return { mensaje: 'Datos actualizados', state: true, usuario };
+        } catch (error) {
+            console.log('Error al actualizar usuario:', error);
+            return { mensaje: 'No se pudo actualizar el dato', state: false };
+        }
+    };
 
     return {
         db,
@@ -276,6 +444,10 @@ export function useBaseDeDatos() {
         estaEnFavoritos,
         listarFavoritosUsuario,
         listarMenuRestaurante,
-        obtenerUsuarioCorreo
+        obtenerUsuarioCorreo,
+        obtenerUsuarioPorId,
+        actualizarUsuario,
+        agregarContactoEmergencia,
+        listarContactosEmergencia,
     };
 }
