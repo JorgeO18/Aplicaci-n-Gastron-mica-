@@ -1,14 +1,22 @@
-import { useState, useEffect, Suspense, use } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { StyleSheet, View } from "react-native";
 import { Canvas } from "@react-three/fiber/native";
 import { useGLTF, OrbitControls } from "@react-three/drei/native";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Asset } from "expo-asset";
+import * as THREE from "three";
 
 function Model({ modelPath, modo = false }: { modelPath: any; modo: boolean }) {
   const gltf = useGLTF(modelPath);
   const scene = (gltf as any).scene;
   const escala = modo ? 0.8 : 1.4;
+  useEffect(() => {
+  scene.traverse((child: any) => {
+    if (child.isMesh && child.material?.map) {
+      child.material.map.colorSpace = THREE.SRGBColorSpace;
+      child.material.needsUpdate = true;
+    }
+  });
+}, [scene]);
 
   return <primitive object={scene} position={[0, 0, 0]} scale={escala} />;
 }

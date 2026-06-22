@@ -4,7 +4,7 @@ const SEARCH_RADIUS_METERS = 5000;
 const OVERPASS_URL = 'https://overpass.kumi.systems/api/interpreter';
 
 export interface Restaurant {
-  id: string;
+  id: number;
   name: string;
   description:string;
   cuisine: string | null;

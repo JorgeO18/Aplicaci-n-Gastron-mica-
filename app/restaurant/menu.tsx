@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.borderRadius.full,
     backgroundColor: Colors.backgroundGray,
-    height:Spacing.sm
+    height: 33
   },
   categoryTabActive: {
     backgroundColor: Colors.primary,

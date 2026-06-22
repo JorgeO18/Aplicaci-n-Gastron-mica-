@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Restaurant } from './useRestaurants';
+
 
 export interface Usuarios {
     id_usuario: number;
@@ -22,6 +22,17 @@ interface UsuariosI {
 }
 export interface Platos {
     id_plato: number;
+    id_restaurante: string;
+    id_categoria: number;
+    nombre: string;
+    descripcion: string;
+    precio: number;
+    imagen_url: string;
+    modelo_3d_url: string;
+    disponible: number;
+}
+export interface PlatosI {
+    
     id_restaurante: string;
     id_categoria: number;
     nombre: string;
@@ -53,6 +64,35 @@ export interface ContactoEmergenciaInput {
     telefono: string;
 }
 
+export interface Restaurante{
+    id_admin: number;
+    nombre: string;
+    descripcion: string;
+    tipo_comida: string;
+    direccion: string;
+    ciudad: string;
+    latitud: number;
+    longitud: number;
+    imagen_url: string;
+    telefono: string;
+    horario: string;
+}
+export interface RestauranteI{
+    id_restaurante: number;
+    id_admin: number;
+    nombre: string;
+    descripcion: string;
+    tipo_comida: string;
+    direccion: string;
+    ciudad: string;
+    latitud: number;
+    longitud: number;
+    imagen_url: string;
+    telefono: string;
+    horario: string;
+}
+
+
 // ✅ Esta función se pasa a SQLiteProvider y solo corre UNA vez
 export async function inicializarDB(database: SQLite.SQLiteDatabase) {
     await database.execAsync(`
@@ -60,7 +100,8 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
         PRAGMA foreign_keys = ON;
 
         CREATE TABLE IF NOT EXISTS restaurantes (
-            id_restaurante TEXT PRIMARY KEY NOT NULL,
+            id_restaurante INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_admin INTEGER NOT NULL,
             nombre TEXT NOT NULL,
             descripcion TEXT,
             tipo_comida TEXT,
@@ -71,7 +112,8 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
             imagen_url TEXT,
             telefono TEXT,
             horario TEXT,
-            fuente TEXT DEFAULT 'local'
+            fuente TEXT DEFAULT 'local',
+            FOREIGN KEY (id_admin) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
         );
         CREATE TABLE IF NOT EXISTS usuarios (
             id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,7 +122,14 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
             password TEXT NOT NULL,
             fecha_nacimiento TEXT,
             telefono TEXT,
-            fecha_registro TEXT DEFAULT CURRENT_TIMESTAMP
+            id_tipo_usuario INTEGER DEFAULT 1,
+            fecha_registro TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (id_tipo_usuario) REFERENCES tipo_usuario(id_tipo_usuario) ON DELETE CASCADE
+        );
+        CREATE TABLE IS NOT EXISTS tipo_usuario(
+            id_tipo_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
+            tipo_usuario TEXT NOT NULL
+        
         );
         CREATE TABLE IF NOT EXISTS preferencias (
             id_preferencia INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -169,7 +218,7 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
 export function useBaseDeDatos() {
     const db = useSQLiteContext(); // ← ya está lista, sin useEffect ni estados
 
-    const insertarDemos = async (rest: Restaurant[]) => {
+    const insertarDemos = async (rest: RestauranteI[]) => {
         const platos = [
             [1, 'Mote de queso', 'Sopa tradicional de la región Caribe', 15000.0, '../assets/images/food_soup.png', 'Untitled'],
             [2, 'Bandeja paisa', 'Plato típico antioqueño con frijoles, arroz y carne', 20000.0, '../assets/images/food_soup.png', 'Untitled'],
@@ -183,7 +232,7 @@ export function useBaseDeDatos() {
             ['regional', 'Plato tradicional de la region'],
             ['local', 'Plato tradicional de la ciudad'],
         ];
-
+        const tUsuario = ['cliente','restaurante','sistema']
         try {
             for (const categoria of categorias) {
                 await db.runAsync(
@@ -197,10 +246,20 @@ export function useBaseDeDatos() {
                         `INSERT OR IGNORE INTO platos 
                         (id_restaurante, id_categoria, nombre, descripcion, precio, imagen_url, modelo_3d_url)
                         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                        [r.id, ...p]  // ✅ comas, no punto y coma
+                        [r.id_restaurante, ...p]  // ✅ comas, no punto y coma
                     );
                 }
             }
+            for (const t of tUsuario) {
+                await db.runAsync(`INSERT OR IGNORE INTO tipo_usuario (tipo_usuario) VALUES (?)`, t);
+            }
+            await db.runAsync(`INSERT OR IGNORE INTO usuarios (nombre, email, password, fecha_nacimiento, telefono ,tipo_usuario) VALUE (?,?,?,?,?,?)`,[
+                'sistema',
+                'sistema@gmail.com',
+                '',
+                '',
+                3
+            ])
         } catch (error) {
             console.log('Error al insertar datos Demo:', error);
         }
@@ -214,7 +273,7 @@ export function useBaseDeDatos() {
             return { mensaje: 'Correo ya registrado, intente otro o inicie sesión', state: false };
         }
         const resultado = await db.runAsync(
-            `INSERT INTO usuarios (nombre, email, password, fecha_nacimiento, telefono) VALUES (?, ?, ?, ?, ?)`,
+            `INSERT INTO usuarios (nombre, email, password, fecha_nacimiento, telefono ) VALUES (?, ?, ?, ?, ?)`,
             [user.nombre, user.email, user.password, user.fecha_nacimiento, user.telefono]
         );
         const usuario = await db.getFirstAsync<Usuarios>(
@@ -433,6 +492,40 @@ export function useBaseDeDatos() {
         }
     };
 
+    const registrarrestaurante = async (restaurante : Restaurante)=>{
+        try {
+            await db.runAsync(`INSERT OR REPLACE INTO restaurantes ( id_admin,nombre, descripcion, tipo_comida, direccion, ciudad,latitud, longitud imagen_url, telefono, horario) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,[
+                restaurante.id_admin,
+                restaurante.nombre,
+                restaurante.descripcion,
+                restaurante.tipo_comida,
+                restaurante.direccion,
+                restaurante.ciudad,
+                restaurante.latitud,
+                restaurante.longitud,
+                restaurante.imagen_url,
+                restaurante.telefono,
+                restaurante.horario
+            ])
+        } catch (error) {
+            console.log('Error al registrar restaurante')
+        }
+    }
+    const registrarPlato = async (plato : PlatosI)=>{
+        try {
+            await db.runAsync(`INSERT OR IGNORE INTO platos (id_restaurante, id_categoria, nombre, descripcion, precio, imagen_url, modelo_3d_url) VALUES (?, ?, ?, ?, ?, ?, ?)`,[
+                plato.id_restaurante,
+                plato.id_categoria,
+                plato.nombre,
+                plato.descripcion,
+                plato.precio,
+                plato.imagen_url,
+                plato.modelo_3d_url
+            ])
+        } catch (error) {
+            
+        }
+    }
     return {
         db,
         isReady: true, // ✅ SQLiteProvider garantiza que ya está lista

@@ -19,11 +19,11 @@ import {
 } from "react-native";
 //imports necesarios para manejo de api y datos
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useBaseDeDatos , Usuarios } from "../../hooks/dataBase";
+import { useBaseDeDatos , Usuarios,RestauranteI } from "../../hooks/dataBase";
 import { getDistanceInMeters } from "../../hooks/distance";
 import { reverseGeocode } from "../../hooks/reverseGeocode";
 import { useLocation } from "../../hooks/useLocation";
-import { Restaurant, useRestaurants } from "../../hooks/useRestaurants";
+import { useRestaurants } from "../../hooks/useRestaurants";
 
 const LOCAL_KEY = "ubicacionUsuario";
 
@@ -35,14 +35,14 @@ function normalizarTexto(texto: string): string {
 }
 
 function filtrarPorCocina(
-  restaurantes: Restaurant[],
+  restaurantes: RestauranteI[],
   consulta: string,
-): Restaurant[] {
+): RestauranteI[] {
   const termino = normalizarTexto(consulta.trim());
   if (!termino) return restaurantes;
 
   return restaurantes.filter((r) => {
-    const cocina = normalizarTexto(r.cuisine ?? "");
+    const cocina = normalizarTexto(r.tipo_comida ?? "");
     return cocina.includes(termino);
   });
 }
@@ -92,7 +92,7 @@ export default function HomeScreen() {
     loading: loadingRe, // varibale de la carga de restaurantes
     fetchRestaurants,
   } = useRestaurants();
-  const [restaurante, setRestaurante] = useState<Restaurant[]>([]); //Donde se guardan los restaurantes para visualizar datos
+  const [restaurante, setRestaurante] = useState<RestauranteI[]>([]); //Donde se guardan los restaurantes para visualizar datos
   const [busquedaCocina, setBusquedaCocina] = useState("");
 
   const restaurantesFiltrados = useMemo(
@@ -116,7 +116,7 @@ export default function HomeScreen() {
      
       if (!isReady || !db) return;
 
-      const result = await db.getAllAsync<Restaurant>(`
+      const result = await db.getAllAsync<RestauranteI>(`
       SELECT 
         id_restaurante  AS id,
         nombre          AS name,
@@ -208,11 +208,11 @@ export default function HomeScreen() {
 
         await db.runAsync(
           `INSERT OR REPLACE INTO restaurantes
-        (id_restaurante, nombre, descripcion, tipo_comida, direccion, ciudad,
+        ( id_admin,nombre, descripcion, tipo_comida, direccion, ciudad,
          latitud, longitud, imagen_url, telefono, horario, fuente)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
           [
-            item.id,
+            1,
             item.name,
             item.description ??
               "Es un restaurante de comida tipica de la region, que promueve la cultura atraves de los platos que ofrece",
@@ -233,7 +233,7 @@ export default function HomeScreen() {
       }
     }
 
-    const result = await db.getAllAsync<Restaurant>(`
+    const result = await db.getAllAsync<RestauranteI>(`
     SELECT 
       id_restaurante  AS id,
       nombre          AS name,
@@ -376,13 +376,13 @@ export default function HomeScreen() {
           ) : (
             restaurantesFiltrados.map((restaurant) => (
               <RestaurantCard
-                key={restaurant.id}
-                name={restaurant.name}
+                key={restaurant.id_restaurante}
+                name={restaurant.nombre}
                 image={require("../../assets/images/restaurant_banner.png")}
-                distance={restaurant.address ?? ""}
-                cuisine={restaurant.cuisine ?? ""}
+                distance={restaurant.direccion ?? ""}
+                cuisine={restaurant.tipo_comida ?? ""}
                 variant="horizontal"
-                onPress={() => router.push(`/restaurant/${restaurant.id}`)}
+                onPress={() => router.push(`/restaurant/${restaurant.id_restaurante}`)}
               />
             ))
           )}
