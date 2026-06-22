@@ -32,7 +32,7 @@ export interface Platos {
     disponible: number;
 }
 export interface PlatosI {
-    
+
     id_restaurante: string;
     id_categoria: number;
     nombre: string;
@@ -64,7 +64,7 @@ export interface ContactoEmergenciaInput {
     telefono: string;
 }
 
-export interface Restaurante{
+export interface Restaurante {
     id_admin: number;
     nombre: string;
     descripcion: string;
@@ -77,7 +77,7 @@ export interface Restaurante{
     telefono: string;
     horario: string;
 }
-export interface RestauranteI{
+export interface RestauranteI {
     id_restaurante: number;
     id_admin: number;
     nombre: string;
@@ -101,7 +101,7 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
 
         CREATE TABLE IF NOT EXISTS restaurantes (
             id_restaurante INTEGER PRIMARY KEY AUTOINCREMENT,
-            id_admin INTEGER NOT NULL,
+            id_usuario INTEGER NOT NULL,
             nombre TEXT NOT NULL,
             descripcion TEXT,
             tipo_comida TEXT,
@@ -113,7 +113,7 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
             telefono TEXT,
             horario TEXT,
             fuente TEXT DEFAULT 'local',
-            FOREIGN KEY (id_admin) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+            FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
         );
         CREATE TABLE IF NOT EXISTS usuarios (
             id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -126,7 +126,7 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
             fecha_registro TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (id_tipo_usuario) REFERENCES tipo_usuario(id_tipo_usuario) ON DELETE CASCADE
         );
-        CREATE TABLE IS NOT EXISTS tipo_usuario(
+        CREATE TABLE IF NOT EXISTS tipo_usuario(
             id_tipo_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
             tipo_usuario TEXT NOT NULL
         
@@ -145,7 +145,7 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
         );
         CREATE TABLE IF NOT EXISTS platos (
             id_plato INTEGER PRIMARY KEY AUTOINCREMENT,
-            id_restaurante TEXT NOT NULL,
+            id_restaurante INTEGER NOT NULL,
             id_categoria INTEGER NOT NULL,
             nombre TEXT NOT NULL,
             descripcion TEXT,
@@ -159,7 +159,7 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
         CREATE TABLE IF NOT EXISTS favoritos (
             id_favorito INTEGER PRIMARY KEY AUTOINCREMENT,
             id_usuario INTEGER NOT NULL,
-            id_restaurante TEXT NOT NULL,
+            id_restaurante INTEGER NOT NULL,
             fecha_guardado TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
             FOREIGN KEY (id_restaurante) REFERENCES restaurantes(id_restaurante) ON DELETE CASCADE,
@@ -180,7 +180,7 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
         CREATE TABLE IF NOT EXISTS rutas (
             id_ruta INTEGER PRIMARY KEY AUTOINCREMENT,
             id_usuario INTEGER,
-            id_restaurante TEXT NOT NULL,
+            id_restaurante INTEGER NOT NULL,
             origen_latitud REAL,
             origen_longitud REAL,
             destino_latitud REAL,
@@ -212,6 +212,15 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
     } catch {
         // La columna ya existe en instalaciones previas
     }
+
+    const tiposUsuario = ['cliente', 'restaurante', 'sistema'];
+    for (const tipo of tiposUsuario) {
+        await database.runAsync(
+            `INSERT OR IGNORE INTO tipo_usuario (tipo_usuario) VALUES (?)`,
+            [tipo]
+        );
+    }
+
 }
 
 // ✅ Hook que reemplaza useBaseDeDatos — usa el contexto del provider
@@ -232,7 +241,7 @@ export function useBaseDeDatos() {
             ['regional', 'Plato tradicional de la region'],
             ['local', 'Plato tradicional de la ciudad'],
         ];
-        const tUsuario = ['cliente','restaurante','sistema']
+
         try {
             for (const categoria of categorias) {
                 await db.runAsync(
@@ -250,12 +259,11 @@ export function useBaseDeDatos() {
                     );
                 }
             }
-            for (const t of tUsuario) {
-                await db.runAsync(`INSERT OR IGNORE INTO tipo_usuario (tipo_usuario) VALUES (?)`, t);
-            }
-            await db.runAsync(`INSERT OR IGNORE INTO usuarios (nombre, email, password, fecha_nacimiento, telefono ,tipo_usuario) VALUE (?,?,?,?,?,?)`,[
+
+            await db.runAsync(`INSERT OR IGNORE INTO usuarios (nombre, email, password, fecha_nacimiento, telefono ,id_tipo_usuario) VALUES (?,?,?,?,?,?)`, [
                 'sistema',
                 'sistema@gmail.com',
+                '12345',
                 '',
                 '',
                 3
@@ -492,9 +500,9 @@ export function useBaseDeDatos() {
         }
     };
 
-    const registrarrestaurante = async (restaurante : Restaurante)=>{
+    const registrarrestaurante = async (restaurante: Restaurante) => {
         try {
-            await db.runAsync(`INSERT OR REPLACE INTO restaurantes ( id_admin,nombre, descripcion, tipo_comida, direccion, ciudad,latitud, longitud imagen_url, telefono, horario) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,[
+            await db.runAsync(`INSERT OR REPLACE INTO restaurantes ( id_admin,nombre, descripcion, tipo_comida, direccion, ciudad,latitud, longitud, imagen_url, telefono, horario) VALUES (?,?,?,?,?,?,?,?,?,?,?)`, [
                 restaurante.id_admin,
                 restaurante.nombre,
                 restaurante.descripcion,
@@ -511,9 +519,9 @@ export function useBaseDeDatos() {
             console.log('Error al registrar restaurante')
         }
     }
-    const registrarPlato = async (plato : PlatosI)=>{
+    const registrarPlato = async (plato: PlatosI) => {
         try {
-            await db.runAsync(`INSERT OR IGNORE INTO platos (id_restaurante, id_categoria, nombre, descripcion, precio, imagen_url, modelo_3d_url) VALUES (?, ?, ?, ?, ?, ?, ?)`,[
+            await db.runAsync(`INSERT OR IGNORE INTO platos (id_restaurante, id_categoria, nombre, descripcion, precio, imagen_url, modelo_3d_url) VALUES (?, ?, ?, ?, ?, ?, ?)`, [
                 plato.id_restaurante,
                 plato.id_categoria,
                 plato.nombre,
@@ -523,7 +531,7 @@ export function useBaseDeDatos() {
                 plato.modelo_3d_url
             ])
         } catch (error) {
-            
+
         }
     }
     return {

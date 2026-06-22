@@ -118,17 +118,17 @@ export default function HomeScreen() {
 
       const result = await db.getAllAsync<RestauranteI>(`
       SELECT 
-        id_restaurante  AS id,
-        nombre          AS name,
-        descripcion     AS description,
-        tipo_comida     AS cuisine,
-        direccion       AS address,
+        id_restaurante  ,
+        nombre          ,
+        descripcion     ,
+        tipo_comida     ,
+        direccion       ,
         ciudad,
-        latitud         AS latitude,
-        longitud        AS longitude,
-        imagen_url      AS image,
-        telefono        AS phone,
-        horario         AS openingHours,
+        latitud         ,
+        longitud        ,
+        imagen_url      ,
+        telefono        ,
+        horario         ,
         fuente
       FROM restaurantes
     `);
@@ -208,9 +208,9 @@ export default function HomeScreen() {
 
         await db.runAsync(
           `INSERT OR REPLACE INTO restaurantes
-        ( id_admin,nombre, descripcion, tipo_comida, direccion, ciudad,
+        ( id_usuario,nombre, descripcion, tipo_comida, direccion, ciudad,
          latitud, longitud, imagen_url, telefono, horario, fuente)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
           [
             1,
             item.name,
@@ -235,17 +235,17 @@ export default function HomeScreen() {
 
     const result = await db.getAllAsync<RestauranteI>(`
     SELECT 
-      id_restaurante  AS id,
-      nombre          AS name,
-      descripcion     AS description,
-      tipo_comida     AS cuisine,
-      direccion       AS address,
+      id_restaurante  ,
+      nombre          ,
+      descripcion     ,
+      tipo_comida     ,
+      direccion       ,
       ciudad,
-      latitud         AS latitude,
-      longitud        AS longitude,
-      imagen_url      AS image,
-      telefono        AS phone,
-      horario         AS openingHours,
+      latitud         ,
+      longitud        ,
+      imagen_url      ,
+      telefono        ,
+      horario         ,
       fuente
     FROM restaurantes
   `);
