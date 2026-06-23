@@ -219,7 +219,7 @@ export default function MapScreen({
     try {
       
       // Buscar por id, no por índice
-      const defaultRestaurant = restaurante.find((r) => r.id === String(resId));
+      const defaultRestaurant = restaurante.find((r) => String(r.id) === String(resId));
       
       if (!defaultRestaurant) return;
   

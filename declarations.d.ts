@@ -5,6 +5,9 @@ declare module '*.bin';
 declare module '*.png';
 declare module '*.jpg';
 
+declare module 'expo-image-picker';
+declare module 'expo-document-picker';
+
 
 declare global {
   namespace JSX {

@@ -25,8 +25,8 @@ export default function SplashScreen() {
   const wordmarkScale = useSharedValue(0.8);
   const finalFade = useSharedValue(1);
 
-  const navigateToLogin = () => {
-    router.replace('/login');
+  const navigateToRoleSelection = () => {
+    router.replace('/role-selection');
   };
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function SplashScreen() {
     finalFade.value = withDelay(
       3000,
       withTiming(0, { duration: 400 }, () => {
-        runOnJS(navigateToLogin)();
+        runOnJS(navigateToRoleSelection)();
       })
     );
   }, []);

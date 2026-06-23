@@ -37,8 +37,15 @@ export default function RootLayout() {
           <Stack.Screen name="ar/instructions" options={{ headerShown: false }} />
           <Stack.Screen name="rarv" options={{ headerShown: false }} />
           <Stack.Screen name="MapView" options={{ headerShown: false }} />
-          
+
+          <Stack.Screen name="role-selection" options={{ headerShown: false }} />
+          <Stack.Screen name="restaurant-login" options={{ headerShown: false }} />
+          <Stack.Screen name="restaurant-register" options={{ headerShown: false }} />
           <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="(restaurant-tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="planes" options={{ headerShown: false }} />
+          <Stack.Screen name="pago" options={{ headerShown: false }} />
+
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

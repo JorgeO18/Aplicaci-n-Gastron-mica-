@@ -1,0 +1,364 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colors } from '@/constants/colors';
+import { Spacing } from '@/constants/spacing';
+import { Typography } from '@/constants/typography';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+
+export default function PerfilScreen() {
+  const router = useRouter();
+
+  // Mock de datos del restaurante (eventualmente vendrían de la BD)
+  const [restaurant, setRestaurant] = useState({
+    nombre: "Mi Restaurante",
+    tipo_comida: "Categoría",
+    ubicacion: "Dirección",
+    telefono: "Teléfono",
+    horario: "Horarios"
+  });
+
+  const [campoEditando, setCampoEditando] = useState<string | null>(null);
+  const [valorEditando, setValorEditando] = useState('');
+  const [planActual, setPlanActual] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await AsyncStorage.getItem('@sesion_restaurante');
+      if (data) setRestaurant(JSON.parse(data));
+      const planData = await AsyncStorage.getItem('@plan_restaurante');
+      if (planData) setPlanActual(JSON.parse(planData).nombre || null);
+    };
+    fetchData();
+  }, []);
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('@sesion_restaurante');
+    router.replace('/restaurant-login');
+  };
+
+  const abrirEdicion = (campo: string) => {
+    setCampoEditando(campo);
+    setValorEditando((restaurant as any)[campo] || '');
+  };
+
+  const cerrarEdicion = () => {
+    setCampoEditando(null);
+    setValorEditando('');
+  };
+
+  const guardarCampo = async () => {
+    if (campoEditando) {
+      const updatedRest = { ...restaurant, [campoEditando]: valorEditando };
+      setRestaurant(updatedRest);
+      await AsyncStorage.setItem('@sesion_restaurante', JSON.stringify(updatedRest));
+    }
+    cerrarEdicion();
+  };
+
+  return (
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header con gradiente (estilo TaseGo) */}
+        <LinearGradient
+          colors={[Colors.primary, Colors.gradientStart]}
+          style={styles.headerGradient}
+        >
+          <Text style={styles.headerTitle}>Perfil del Restaurante</Text>
+
+          {/* Avatar principal */}
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <Ionicons name="storefront" size={48} color={Colors.textWhite} />
+            </View>
+            <TouchableOpacity style={styles.editAvatar}>
+              <Ionicons name="camera" size={14} color={Colors.textWhite} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.restaurantName}>{restaurant.nombre}</Text>
+          <Text style={styles.restaurantType}>{restaurant.tipo_comida}</Text>
+        </LinearGradient>
+
+        {/* Curva superpuesta */}
+        <View style={styles.curve} />
+
+        {/* Información del restaurante */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Información del Local</Text>
+          
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('nombre')}>
+            <View style={styles.fieldIcon}>
+              <Ionicons name="restaurant-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.fieldContent}>
+              <Text style={styles.fieldLabel}>Nombre del restaurante</Text>
+              <Text style={styles.fieldValue}>{restaurant.nombre}</Text>
+            </View>
+            <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('ubicacion')}>
+            <View style={styles.fieldIcon}>
+              <Ionicons name="location-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.fieldContent}>
+              <Text style={styles.fieldLabel}>Ubicación</Text>
+              <Text style={styles.fieldValue}>{restaurant.ubicacion}</Text>
+            </View>
+            <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('telefono')}>
+            <View style={styles.fieldIcon}>
+              <Ionicons name="call-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.fieldContent}>
+              <Text style={styles.fieldLabel}>Teléfono de contacto</Text>
+              <Text style={styles.fieldValue}>{restaurant.telefono}</Text>
+            </View>
+            <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('horario')}>
+            <View style={styles.fieldIcon}>
+              <Ionicons name="time-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.fieldContent}>
+              <Text style={styles.fieldLabel}>Horario de atención</Text>
+              <Text style={styles.fieldValue}>{restaurant.horario}</Text>
+            </View>
+            <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+        </View>
+
+        {/* General Options */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>General</Text>
+
+          <TouchableOpacity style={styles.menuRow} activeOpacity={0.7} onPress={() => router.push('/planes' as any)}>
+            <View style={[styles.menuIcon, { backgroundColor: Colors.primary + '15' }]}>
+              <Ionicons name="trophy-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.menuLabel}>Mi Plan</Text>
+              <Text style={{ fontSize: 12, color: Colors.textSecondary, marginTop: 2 }}>{planActual ?? 'Gratuito – Toca para actualizar'}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuRow} activeOpacity={0.7} onPress={handleLogout}>
+            <View style={[styles.menuIcon, { backgroundColor: Colors.error + '15' }]}>
+              <Ionicons name="log-out-outline" size={20} color={Colors.error} />
+            </View>
+            <Text style={[styles.menuLabel, { color: Colors.error }]}>Cerrar sesión</Text>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+        </View>
+        <View style={{ height: Spacing.xxl }} />
+      </ScrollView>
+
+      {/* Modal de edición */}
+      <Modal visible={campoEditando !== null} transparent animationType="fade" onRequestClose={cerrarEdicion}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Editar Información</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={valorEditando}
+              onChangeText={setValorEditando}
+              placeholder="Ingresa el nuevo valor"
+              placeholderTextColor={Colors.textLight}
+              autoCapitalize="sentences"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalBtnCancel} onPress={cerrarEdicion}>
+                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalBtnSave} onPress={guardarCampo}>
+                <Text style={styles.modalBtnSaveText}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 40,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.weights.semiBold,
+    color: Colors.textWhite,
+    marginBottom: Spacing.lg,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: Spacing.md,
+  },
+  avatar: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  editAvatar: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.gradientStart,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.textWhite,
+  },
+  restaurantName: {
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.weights.bold,
+    color: Colors.textWhite,
+  },
+  restaurantType: {
+    fontSize: Typography.sizes.md,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  curve: {
+    height: 20,
+    backgroundColor: Colors.background,
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  section: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.weights.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  fieldIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.primary + '12',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  fieldContent: {
+    flex: 1,
+  },
+  fieldLabel: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textLight,
+    marginBottom: 2,
+  },
+  fieldValue: {
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.medium,
+    color: Colors.textPrimary,
+  },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  menuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.md,
+  },
+  menuLabel: {
+    flex: 1,
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.weights.medium,
+    color: Colors.textPrimary,
+  },
+  /* Modal Styles */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    paddingHorizontal: Spacing.lg,
+  },
+  modalCard: {
+    backgroundColor: Colors.card,
+    borderRadius: Spacing.borderRadius.lg,
+    padding: Spacing.lg,
+  },
+  modalTitle: {
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.weights.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    borderRadius: Spacing.borderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: Typography.sizes.base,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.lg,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: Spacing.sm,
+  },
+  modalBtnCancel: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  modalBtnCancelText: {
+    color: Colors.textSecondary,
+    fontWeight: Typography.weights.medium,
+  },
+  modalBtnSave: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Spacing.borderRadius.full,
+  },
+  modalBtnSaveText: {
+    color: Colors.textWhite,
+    fontWeight: Typography.weights.bold,
+  },
+});

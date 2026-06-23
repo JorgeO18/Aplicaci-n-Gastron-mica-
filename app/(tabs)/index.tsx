@@ -229,7 +229,7 @@ export default function HomeScreen() {
         );
         console.log("✅ Guardado:", item.name);
       } catch (err) {
-        console.error("❌ Error guardando restaurante:", item.id, err);
+        console.warn("❌ Advertencia guardando restaurante (FK):", item.id, err);
       }
     }
 

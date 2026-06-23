@@ -1,0 +1,3 @@
+components/MapScreen.tsx(222,57): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+hooks/archivos.ts(1,30): error TS2307: Cannot find module 'expo-image-picker' or its corresponding type declarations.
+hooks/archivos.ts(2,33): error TS2307: Cannot find module 'expo-document-picker' or its corresponding type declarations.
