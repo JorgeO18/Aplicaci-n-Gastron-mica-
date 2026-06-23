@@ -22,6 +22,7 @@ export default function PerfilScreen() {
 
   const [campoEditando, setCampoEditando] = useState<string | null>(null);
   const [valorEditando, setValorEditando] = useState('');
+  const [showPasswordInModal, setShowPasswordInModal] = useState(false);
   const [planActual, setPlanActual] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export default function PerfilScreen() {
   const cerrarEdicion = () => {
     setCampoEditando(null);
     setValorEditando('');
+    setShowPasswordInModal(false);
   };
 
   const guardarCampo = async () => {
@@ -88,7 +90,6 @@ export default function PerfilScreen() {
         {/* Información del restaurante */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información del Local</Text>
-          
           <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('nombre')}>
             <View style={styles.fieldIcon}>
               <Ionicons name="restaurant-outline" size={20} color={Colors.primary} />
@@ -96,6 +97,17 @@ export default function PerfilScreen() {
             <View style={styles.fieldContent}>
               <Text style={styles.fieldLabel}>Nombre del restaurante</Text>
               <Text style={styles.fieldValue}>{restaurant.nombre}</Text>
+            </View>
+            <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('tipo_comida')}>
+            <View style={styles.fieldIcon}>
+              <Ionicons name="restaurant-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.fieldContent}>
+              <Text style={styles.fieldLabel}>Categoría</Text>
+              <Text style={styles.fieldValue}>{restaurant.tipo_comida}</Text>
             </View>
             <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
           </TouchableOpacity>
@@ -132,6 +144,17 @@ export default function PerfilScreen() {
             </View>
             <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('password')}>
+            <View style={styles.fieldIcon}>
+              <Ionicons name="lock-closed-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.fieldContent}>
+              <Text style={styles.fieldLabel}>Contraseña</Text>
+              <Text style={styles.fieldValue}>••••••••</Text>
+            </View>
+            <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
         </View>
 
         {/* General Options */}
@@ -165,14 +188,26 @@ export default function PerfilScreen() {
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Editar Información</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={valorEditando}
-              onChangeText={setValorEditando}
-              placeholder="Ingresa el nuevo valor"
-              placeholderTextColor={Colors.textLight}
-              autoCapitalize="sentences"
-            />
+            <View style={styles.modalInputContainer}>
+              <TextInput
+                style={[styles.modalInput, { marginBottom: 0, flex: 1, borderWidth: 0 }]}
+                value={valorEditando}
+                onChangeText={setValorEditando}
+                placeholder="Ingresa el nuevo valor"
+                placeholderTextColor={Colors.textLight}
+                autoCapitalize={campoEditando === 'password' ? "none" : "sentences"}
+                secureTextEntry={campoEditando === 'password' && !showPasswordInModal}
+              />
+              {campoEditando === 'password' && (
+                <TouchableOpacity onPress={() => setShowPasswordInModal(!showPasswordInModal)} style={{ paddingHorizontal: 10 }}>
+                  <Ionicons 
+                    name={showPasswordInModal ? 'eye-outline' : 'eye-off-outline'} 
+                    size={20} 
+                    color={Colors.textLight} 
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalBtnCancel} onPress={cerrarEdicion}>
                 <Text style={styles.modalBtnCancelText}>Cancelar</Text>
@@ -328,15 +363,20 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
   },
-  modalInput: {
+  modalInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.borderLight,
     borderRadius: Spacing.borderRadius.md,
+    marginBottom: Spacing.lg,
+    paddingRight: 5,
+  },
+  modalInput: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     fontSize: Typography.sizes.base,
     color: Colors.textPrimary,
-    marginBottom: Spacing.lg,
   },
   modalActions: {
     flexDirection: "row",

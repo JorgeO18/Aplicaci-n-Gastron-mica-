@@ -26,6 +26,10 @@ export default function RestaurantRegisterScreen() {
   const [telefono, setTelefono] = useState('');
   const [tipoCocina, setTipoCocina] = useState('');
   const [horario, setHorario] = useState('');
+  const [contraseña, setContrasena] = useState('');
+  const [contraseña2, setContrasena2] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const registrarRestaurante = async () => {
     if (
@@ -33,11 +37,22 @@ export default function RestaurantRegisterScreen() {
       direccion.trim() === '' || 
       telefono.trim() === '' || 
       tipoCocina.trim() === '' || 
-      horario.trim() === ''
+      horario.trim() === '' ||
+      contraseña.trim() === '' ||
+      contraseña2.trim() === ''
     ) {
       alert('Rellene todos los campos');
+    } else if (contraseña !== contraseña2) {
+      alert('Las contraseñas no coinciden');
     } else {
-      const restData = { nombre, ubicacion: direccion, telefono, tipo_comida: tipoCocina, horario };
+      const restData = { 
+        nombre, 
+        ubicacion: direccion, 
+        telefono, 
+        tipo_comida: tipoCocina, 
+        horario,
+        password: contraseña // Guardamos la contraseña en la sesión simulada
+      };
       await AsyncStorage.setItem('@sesion_restaurante', JSON.stringify(restData));
       alert('Restaurante registrado con éxito. Bienvenido al panel administrativo.');
       router.replace('/(restaurant-tabs)');
@@ -136,6 +151,46 @@ export default function RestaurantRegisterScreen() {
               placeholder="Horario de atención"
               placeholderTextColor={Colors.textLight}
             />
+          </View>
+          
+          {/* Campo Contraseña */}
+          <View style={styles.inputContainer}>
+            <Icon name="lock-closed-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              value={contraseña}
+              onChangeText={setContrasena}
+              placeholder="Contraseña"
+              placeholderTextColor={Colors.textLight}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <Icon
+                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                size={20}
+                color={Colors.textLight}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Campo Confirmar Contraseña */}
+          <View style={styles.inputContainer}>
+            <Icon name="lock-closed-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              value={contraseña2}
+              onChangeText={setContrasena2}
+              placeholder="Confirmar contraseña"
+              placeholderTextColor={Colors.textLight}
+              secureTextEntry={!showConfirmPassword}
+            />
+            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+              <Icon
+                name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
+                size={20}
+                color={Colors.textLight}
+              />
+            </TouchableOpacity>
           </View>
 
           {/* Botón Registro */}

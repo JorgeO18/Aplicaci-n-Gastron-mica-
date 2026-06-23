@@ -1,24 +1,24 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Image, KeyboardAvoidingView, Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/colors';
 import { Spacing } from '@/constants/spacing';
 import { Typography } from '@/constants/typography';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function PlatosScreen() {
   const router = useRouter();
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [fotos, setFotos] = useState<string[]>([]);
-  
-  // Utilizar el hook en lugar de la función directa que causaba conflicto
-  const [permissionStatus, requestPermission] = ImagePicker.useMediaLibraryPermissions();
 
-  const MAX_FOTOS = 4;
+  // Eliminamos el hook que puede causar problemas de registro en Android
+  // const [permissionStatus, requestPermission] = ImagePicker.useMediaLibraryPermissions();
+
+  const MAX_FOTOS = 2;
 
   const handleSubirFoto = async () => {
     if (fotos.length >= MAX_FOTOS) {
@@ -26,17 +26,15 @@ export default function PlatosScreen() {
       return;
     }
 
-    if (!permissionStatus?.granted) {
-      const permission = await requestPermission();
-      if (!permission.granted) {
-        alert("Necesitamos permisos para acceder a tu galería de fotos.");
-        return;
-      }
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      alert("Necesitamos permisos para acceder a tu galería de fotos.");
+      return;
     }
 
     try {
       let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 1,
@@ -65,6 +63,7 @@ export default function PlatosScreen() {
       const plan = planData ? JSON.parse(planData) : null;
       const MAX_GRATIS = 2;
       const MAX_BASICO = 10;
+      const MAX_PRO = 30;
 
       // Sin plan: solo 2 platos
       if (!plan && listado.length >= MAX_GRATIS) {
@@ -78,6 +77,12 @@ export default function PlatosScreen() {
         router.push('/planes' as any);
         return;
       }
+      // Plan pro: hasta 30 platos
+      if (plan?.id === 'pro' && listado.length >= MAX_PRO) {
+        alert(`Tu plan Pro permite hasta ${MAX_PRO} platos. Actualiza al plan Premium para agregar más.`);
+        router.push('/planes' as any);
+        return;
+      }
     } catch (e) {
       console.warn('Error verificando plan:', e);
     }
@@ -86,15 +91,15 @@ export default function PlatosScreen() {
       id: Date.now().toString(),
       nombre,
       descripcion,
-      foto: fotos.length > 0 ? fotos[0] : null,
+      fotos: fotos, // Guardamos todas las fotos seleccionadas (máximo 2)
     };
-    
+
     try {
       const almacenados = await AsyncStorage.getItem('@platos_restaurante');
       let listado = almacenados ? JSON.parse(almacenados) : [];
       listado.push(nuevoPlato);
       await AsyncStorage.setItem('@platos_restaurante', JSON.stringify(listado));
-      
+
       alert("Plato guardado con éxito.");
       setNombre('');
       setDescripcion('');
@@ -107,7 +112,7 @@ export default function PlatosScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        
+
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Agrega un Platillo</Text>
           <Text style={styles.headerSub}>Sube fotos, nombre y descripción y ofrécelo a tus clientes.</Text>
@@ -124,12 +129,20 @@ export default function PlatosScreen() {
 
         {/* Placeholders / Miniaturas */}
         <View style={styles.thumbnailsRow}>
-          {[0, 1, 2, 3].map((index) => {
+          {[0, 1].map((index) => {
             const hasPhoto = index < fotos.length;
             return (
-              <View key={index} style={styles.thumbnailBox}>
+              <View key={index} style={[styles.thumbnailBox, { width: '48%' }]}>
                 {hasPhoto ? (
-                  <Image source={{ uri: fotos[index] }} style={styles.thumbnailImg} />
+                  <View style={{ width: '100%', height: '100%' }}>
+                    <Image source={{ uri: fotos[index] }} style={styles.thumbnailImg} />
+                    <TouchableOpacity 
+                      style={styles.removePhotoBadge} 
+                      onPress={() => setFotos(fotos.filter((_, i) => i !== index))}
+                    >
+                      <Ionicons name="close-circle" size={20} color={Colors.error} />
+                    </TouchableOpacity>
+                  </View>
                 ) : (
                   <Ionicons name="image-outline" size={24} color={Colors.textLight} />
                 )}
@@ -155,7 +168,7 @@ export default function PlatosScreen() {
             placeholder="Escribe una pequeña descripción o los ingredientes principales..."
             placeholderTextColor={Colors.textLight}
             value={descripcion}
-            onChangeText={(t) => { if(t.length <= 300) setDescripcion(t) }}
+            onChangeText={(t) => { if (t.length <= 300) setDescripcion(t) }}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
@@ -253,6 +266,13 @@ const styles = StyleSheet.create({
   thumbnailImg: {
     width: '100%',
     height: '100%',
+  },
+  removePhotoBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: 'white',
+    borderRadius: 10,
   },
   inputContainer: {
     backgroundColor: Colors.backgroundGray,

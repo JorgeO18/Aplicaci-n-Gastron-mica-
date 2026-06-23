@@ -20,7 +20,7 @@ const PLANES = [
     id: 'pro',
     nombre: 'Pro',
     precio: '$19.99',
-    features: ['Perfil destacado', 'Platos ilimitados', 'Estadísticas avanzadas', 'Soporte prioritario'],
+    features: ['Perfil destacado', 'Hasta 30 platos', 'Estadísticas avanzadas', 'Soporte prioritario'],
     popular: true,
     gradientColores: [Colors.gradientStart, Colors.gradientEnd] as [string, string],
   },
