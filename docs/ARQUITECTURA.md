@@ -50,9 +50,10 @@ Pantalla oculta del tab bar (`href: null`): `notifications` (acceso desde el ico
 
 | Ruta | Archivo | Descripción |
 |------|---------|-------------|
-| `/` | `app/index.tsx` | Splash animado (Reanimated) |
-| `/login` | `app/login.tsx` | Email y contraseña → SQLite |
-| `/register` | `app/register.tsx` | Alta de usuario |
+| `/` | `app/index.tsx` | Splash animado → check sesión → `/role-selection` o `/(tabs)` |
+| `/role-selection` | `app/role-selection.tsx` | Vista donde se elige tipo de cuenta |
+| `/login` y `/restaurant-login` | `app/login.tsx` / `restaurant-login.tsx` | Autenticación |
+| `/register` y `/restaurant...` | `app/register.tsx` / `restaurant-regs...` | Alta de usuario/restaurante |
 | `/(tabs)` | `app/(tabs)/index.tsx` | Home: sync Overpass→SQLite, búsqueda por cocina, mocks |
 | `/(tabs)/favoritos` | `app/(tabs)/favoritos.tsx` | Restaurantes favoritos del usuario |
 | `/(tabs)/perfil` | `app/(tabs)/perfil.tsx` | Edición de perfil, contactos de emergencia, logout |
@@ -117,7 +118,7 @@ Ver referencia completa: [MODULOS_HOME_PERFIL_BD.md](./MODULOS_HOME_PERFIL_BD.md
 | `SearchBar` | `components/SearchBar.tsx` | Búsqueda en Home |
 | `MapScreen` | `components/MapScreen.tsx` | Mapa + marcadores + ruta |
 | `ModelViewer` | `components/ModelViewer.tsx` | Canvas Three.js + cámara AR |
-| `FoodCard` | `components/FoodCard.tsx` | Ítem de menú |
+| `FoodCard` | `components/FoodCard.tsx` | Ítem de menú (incluye carrusel de imágenes si hay múltiples URLs) |
 | `GradientButton` | `components/GradientButton.tsx` | Botón con gradiente de marca |
 
 ### Modelos 3D
@@ -147,11 +148,12 @@ GPS → (umbral 5 km) → Overpass → reverseGeocode → SQLite → filtro coci
 
 ## Flujo de sesión y perfil
 
-1. `registrarUsuario` / `iniciarSesion` en `useBaseDeDatos`.
-2. Tras login, usuario completo en `AsyncStorage` (`sesion`).
-3. **Home** saluda con `user.nombre`; **Perfil** permite editar `nombre`, `email`, `telefono`, `ubicacion` vía `actualizarUsuario` y sincroniza `sesion`.
-4. **Perfil** gestiona `contactos_emergencia` (alta y llamada con `Linking`).
-5. Logout: `AsyncStorage.removeItem('sesion')` + `router.replace('/login')`.
+1. `registrarUsuario`, `registrarRestaurantes` / `iniciarSesion` en `useBaseDeDatos`.
+2. Tras login, usuario completo guardado en `AsyncStorage` (`sesion`).
+3. **Inicio (Splash)** checkea si hay sesión activa; si existe, omite la selección de rol y enruta a la pantalla principal correspondiente.
+4. **Perfil** permite editar `nombre`, `email`, `telefono`, `ubicacion` vía `actualizarUsuario`/`actualizarRestaurante` y sincroniza `sesion`.
+5. **Perfil** gestiona `contactos_emergencia` (alta y llamada con `Linking`).
+6. Logout: `AsyncStorage.removeItem('sesion')` + `router.replace('/role-selection')`.
 
 ---
 

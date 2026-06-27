@@ -12,8 +12,11 @@ Mapa de navegación basado en **Expo Router** (archivos en `app/`). Las flechas 
 flowchart TB
     subgraph auth["Autenticación"]
         SPLASH["/  Splash<br/>app/index.tsx"]
+        ROLE["/role-selection"]
         LOGIN["/login"]
         REGISTER["/register"]
+        RES_LOGIN["/restaurant-login"]
+        RES_REGISTER["/restaurant-register"]
     end
 
     subgraph tabs["/(tabs) — Barra inferior"]
@@ -31,11 +34,17 @@ flowchart TB
         RARV["/rarv"]
     end
 
-    SPLASH -->|replace| LOGIN
+    SPLASH -->|sesión activa| HOME
+    SPLASH -->|replace| ROLE
+    ROLE -->|push| LOGIN
+    ROLE -->|push| RES_LOGIN
     LOGIN -->|sesión / login OK| HOME
     LOGIN -->|push| REGISTER
     REGISTER -->|replace OK| HOME
-    PERFIL -->|replace logout| LOGIN
+    RES_LOGIN -->|sesión / login OK| HOME
+    RES_LOGIN -->|push| RES_REGISTER
+    RES_REGISTER -->|replace OK| HOME
+    PERFIL -->|replace logout| ROLE
 
     HOME -->|push| NOTIF
     HOME -->|push| DET
@@ -56,8 +65,11 @@ flowchart TB
     ROOT["Stack raíz — app/_layout.tsx"]
 
     ROOT --> SPLASH["index — Splash"]
+    ROOT --> ROLE["role-selection"]
     ROOT --> LOGIN
     ROOT --> REGISTER
+    ROOT --> RES_LOGIN["restaurant-login"]
+    ROOT --> RES_REGISTER["restaurant-register"]
     ROOT --> TABS["(tabs)"]
     ROOT --> DET["restaurant/[id]"]
     ROOT --> MENU["restaurant/menu"]
@@ -113,9 +125,12 @@ sequenceDiagram
 
 | Ruta | Archivo | Descripción |
 |------|---------|-------------|
-| `/` | `app/index.tsx` | Splash animado → login |
-| `/login` | `app/login.tsx` | Inicio de sesión |
+| `/` | `app/index.tsx` | Splash animado → check sesión → `HOME` o `/role-selection` |
+| `/role-selection` | `app/role-selection.tsx` | Selección de rol (Usuario / Restaurante) |
+| `/login` | `app/login.tsx` | Inicio de sesión de Usuario |
 | `/register` | `app/register.tsx` | Registro de usuario |
+| `/restaurant-login` | `app/restaurant-login.tsx` | Inicio de sesión de Restaurante |
+| `/restaurant-register` | `app/restaurant-register.tsx` | Registro de restaurante |
 | `/(tabs)` | `app/(tabs)/index.tsx` | Home: sync Overpass/SQLite, búsqueda por cocina |
 | `/(tabs)/favoritos` | `app/(tabs)/favoritos.tsx` | Favoritos del usuario |
 | `/(tabs)/perfil` | `app/(tabs)/perfil.tsx` | Edición de perfil, contactos de emergencia, logout |
@@ -132,11 +147,13 @@ sequenceDiagram
 
 | Desde | Hacia | Método |
 |-------|--------|--------|
-| Splash | Login | `replace` |
-| Login | Tabs (Home) | `push` / `replace` |
-| Login | Registro | `push` |
+| Splash | Role Selection | `replace` (si no hay sesión) |
+| Splash | Tabs (Home) | `replace` (si hay sesión activa) |
+| Role Selection | Login | `push` |
+| Login / Res Login | Tabs (Home) | `push` / `replace` |
+| Login / Res Login | Registro | `push` |
 | Registro | Tabs | `replace` |
-| Perfil | Login | `replace` (logout) |
+| Perfil | Role Selection | `replace` (logout) |
 | Home | Notificaciones | `push` |
 | Home | `/restaurant/:id` | `push` |
 | Favoritos | `/restaurant/:id` | `replace` |

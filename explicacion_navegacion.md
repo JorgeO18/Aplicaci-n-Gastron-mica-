@@ -70,3 +70,15 @@ const iniciarBD = async () => {
 La base de datos busca únicamente al restaurante con el ID `4`. Devuelve su nombre ("Red Rock Coffee"), su foto, sus stats, y tú se los pasas al componente visual (`restaurante[0]?.name`, `restaurante[0]?.cuisine`). 
 
 ¡Y listo! Al usuario le parece magia, pero en realidad fue una bonita cadena de mensajes pasándose un número de un lugar a otro.
+
+---
+
+## 🧐 Paso Extra: ¿Cómo llegamos al Inicio? (Splash y Roles)
+
+Antes de que puedas ver las tarjetas de restaurantes, TasteGo también aplica la magia de Expo Router desde que abres la app:
+
+1. **El Splash Screen** (`app/index.tsx`) valida automáticamente si hay una sesión guardada en memoria.
+2. Si **existe una sesión**, la aplicación hace un reenvío silencioso directo a la pantalla principal (`/(tabs)/index`).
+3. Si **no existe sesión**, el mismo Router te envía a la pantalla de `/role-selection`, permitiendo que elijas iniciar sesión como Cliente (Usuario) o dueños de locales (`/restaurant-login`).
+
+Así es como Expo Router mantiene el flujo ordenado incluso antes de interactuar con la app.

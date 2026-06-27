@@ -269,7 +269,7 @@ export function useBaseDeDatos() {
                 }
             }
 
-            // ✅ corregido: usuarios solo tiene email, password e id_tipo_usuario
+            // usuarios solo tiene email, password e id_tipo_usuario
             await db.runAsync(
                 `INSERT OR IGNORE INTO usuarios (email, password, id_tipo_usuario) VALUES (?, ?, ?)`,
                 ['sistema@gmail.com', '12345', 3]
@@ -294,7 +294,7 @@ export function useBaseDeDatos() {
             `INSERT INTO clientes (id_usuario, nombre, fecha_nacimiento, telefono) VALUES (?, ?, ?, ?)`,
             [resultado.lastInsertRowId, user.nombre, user.fecha_nacimiento, user.telefono]
         );
-        // ✅ corregido: sin coma colgante, JOIN explícito entre usuarios y clientes
+        // JOIN explícito entre usuarios y clientes
         const usuario = await db.getFirstAsync<Usuarios>(
             `SELECT c.id_cliente AS id_usuario, c.nombre, u.email, u.password, c.fecha_nacimiento, c.telefono
              FROM clientes c
@@ -308,7 +308,7 @@ export function useBaseDeDatos() {
     const iniciarSesion = async (correo: string, contraseña: string, tipo: number) => {
         try {
             if (tipo === 1) {
-                // ✅ corregido: sin coma colgante, JOIN explícito
+                // JOIN explícito
                 return await db.getFirstAsync(
                     `SELECT c.id_cliente AS id_usuario, c.nombre, u.email, u.password, c.fecha_nacimiento, c.telefono
                      FROM usuarios u
@@ -318,7 +318,7 @@ export function useBaseDeDatos() {
                 ) ?? false;
 
             } else if (tipo === 2) {
-                // ✅ corregido: tabla "restaurantes" (no "restaurante"), columna id_usuario (no id_admin), JOIN explícito
+                // JOIN explícito con tabla "restaurantes"
                 return await db.getFirstAsync(
                     `SELECT r.id_restaurante, r.nombre, r.descripcion, r.tipo_comida, r.direccion,
                             r.ciudad, r.latitud, r.longitud, r.imagen_url, r.telefono, r.horario
@@ -328,7 +328,7 @@ export function useBaseDeDatos() {
                     [correo, contraseña]
                 ) ?? false;
             }
-            return false; // ✅ corregido: antes no retornaba nada si tipo no era 1 ni 2
+            return false;
         } catch (error) {
             console.log('Error al iniciar sesión:', error);
             return false;
@@ -510,8 +510,7 @@ export function useBaseDeDatos() {
                 };
             }
 
-            // ✅ corregido: 'nombre' y 'telefono' viven en la tabla "clientes",
-            // no en "usuarios". 'email' y 'ubicacion' sí viven en "usuarios".
+            
             if (campo === 'email') {
                 const correoExistente = await db.getFirstAsync(
                     `SELECT id_usuario FROM usuarios WHERE email = ? AND id_usuario != ?`,

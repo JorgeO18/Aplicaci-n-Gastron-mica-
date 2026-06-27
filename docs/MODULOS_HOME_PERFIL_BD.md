@@ -29,18 +29,22 @@ Capa de persistencia local. Expone `inicializarDB` (ejecutada una vez por `SQLit
 
 | Método | Retorno | Descripción |
 |--------|---------|-------------|
-| `insertarDemos(rest)` | `void` | Categorías `regional`/`local` y 7 platos demo por restaurante |
-| `registrarUsuario(user)` | `{ mensaje, state }` | Valida email único |
-| `iniciarSesion(correo, pass)` | `Usuarios \| false` | Login por email + contraseña |
-| `actualizarUsuario(id, campo, valor)` | `{ mensaje, state, usuario? }` | Edita `nombre`, `email`, `telefono` o `ubicacion`; valida email único |
-| `agregarContactoEmergencia(id, contacto)` | `{ mensaje, state, contacto? }` | Valida campos no vacíos |
+| `insertarDemos(rest)` | `void` | Categorías `regional`/`local` y platos demo por restaurante |
+| `registrarUsuario(user)` | `{ mensaje, state }` | Valida email único y crea cliente |
+| `iniciarSesion(correo, pass, tipo)` | `Usuarios \| RestauranteI \| false` | Login por email, contraseña y rol |
+| `actualizarUsuario(id, campo, valor)` | `{ mensaje, state, usuario? }` | Edita campos del perfil (`clientes`/`usuarios`) |
+| `registrarRestaurantes(rest)` | `{ mensaje, state, restaurante }` | Modifica DB y usuarios para alta de un nuevo restaurante |
+| `actualizarRestaurante(id, campo, valor)` | `{ mensaje, state, restaurante? }` | Actualiza cuenta o detalles del restaurante |
+| `registrarPlato(plato)` | `void` | Permite agregar un plato |
+| `obtenerCategorias()` | `Categorias[]` | Obtiene las categorías de la tabla `categoria` |
+| `agregarContactoEmergencia(id, contacto)` | `{ mensaje... }` | Valida campos no vacíos para emergencia |
 | `listarContactosEmergencia(id)` | `ContactoEmergencia[]` | Ordenados por `fecha_creacion DESC` |
 | `agregarFavoritos` / `eliminarFavoritos` | `void` | CRUD favoritos |
-| `estaEnFavoritos` | `boolean` | |
-| `listarFavoritosUsuario` | `Favoritos[]` | |
-| `listarMenuRestaurante` | `Platos[]` | |
-| `obtenerUsuarioCorreo` | `Usuarios?` | |
-| `db` | `SQLiteDatabase` | Acceso directo para consultas en pantallas |
+| `estaEnFavoritos` | `boolean` | Verifica existencia |
+| `listarFavoritosUsuario` | `Favoritos[]` | Listado de restaurantes favoritos |
+| `listarMenuRestaurante` | `Platos[]` | Recupera el menú de base de datos |
+| `obtenerUsuarioCorreo` / `obtenerUsuarioPorId` | `Usuarios?` | Consultas de usuario específicas |
+| `db` | `SQLiteDatabase` | Acceso directo para consultas |
 | `isReady` | `true` | Siempre listo tras montar el provider |
 
 ---

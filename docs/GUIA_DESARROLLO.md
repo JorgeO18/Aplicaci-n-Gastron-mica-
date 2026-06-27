@@ -68,6 +68,20 @@ No hay archivo `.env` en el proyecto actual. Las claves sensibles están en:
 3. Permiso de cámara concedido (`expo-camera`).
 4. Flujo: menú → guardar clave en `moldelRA` → `/ar/instructions` → `/rarv?tipo=true`.
 
+## ⚠️ Optimización de modelos 3D (.glb)
+
+Los modelos deben estar optimizados antes de subirlos al proyecto, o pueden 
+renderizarse en negro / sin textura en dispositivos móviles (AR).
+
+Recomendado:
+- Malla: máx. ~20,000 vértices (usar modificador Decimate en Blender)
+- Texturas: máx. 1024x1024 px
+- Peso final del .glb: idealmente bajo 5 MB
+
+Sin estos límites, expo-gl puede fallar al subir las texturas/geometría a la 
+GPU del teléfono, y el modelo se ve negro y sin luz aunque el código de 
+React esté bien.
+
 ---
 
 ## Añadir un nuevo plato con modelo 3D

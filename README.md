@@ -35,12 +35,12 @@
 - **Búsqueda en Home**: filtro en tiempo real por tipo de comida (`cuisine`), sin acentos.
 - **Geolocalización**: GPS, geocodificación inversa al guardar restaurantes y umbral de movimiento de 5 km.
 - **Detalle de restaurante**: ficha con información, favoritos y acceso al menú.
-- **Menú y platos**: listado desde SQLite con datos de demostración (platos regionales colombianos).
+- **Menú y platos**: Listado gestionado vía restaurantes, con soporte para carrusel de múltiples imágenes en los platos si se proporcionan.
 - **Favoritos**: persistencia por usuario en base de datos local.
 - **Rutas**: cálculo de trayectos con [OSRM](https://project-osrm.org/) y visualización en mapa (Google Maps en Android).
 - **Realidad aumentada / virtual**: visualización de modelos 3D (`.glb`) con `@react-three/fiber`, `expo-gl` y cámara.
-- **Autenticación local**: registro e inicio de sesión con usuarios en SQLite y sesión en `AsyncStorage`.
-- **Perfil editable**: nombre, correo, teléfono y ubicación; sincronización con BD y `sesion`.
+- **Autenticación y Roles**: Diferente inicio de sesión/registro para usuarios regulares (clientes) y restaurantes. Check automático de sesión en el Splash screen.
+- **Perfil editable**: nombre, correo, teléfono, ubicación (para clientes), o detalles operacionales para cuentas de restaurantes.
 - **Contactos de emergencia**: alta en Perfil, listado y llamada directa desde la app.
 
 ---
@@ -138,20 +138,21 @@ Documentación detallada: [docs/ARQUITECTURA.md](./docs/ARQUITECTURA.md) y [docs
 
 ```mermaid
 flowchart TD
-    A[Splash app/index.tsx] --> B[Login]
-    B --> C{¿Sesión válida?}
-    C -->|Sí| D[(tabs) Home]
-    C -->|No| B
-    D --> E[Overpass: restaurantes cercanos]
+    A[Splash app/index.tsx] --> B{¿Sesión válida?}
+    B -->|Sí| C[(tabs) Home]
+    B -->|No| R[Role Selection]
+    R --> L[Login / Res Login]
+    L --> C
+    C --> E[Overpass: restaurantes cercanos]
     E --> F[SQLite: cache local]
     D --> G["/restaurant/:id"]
     G --> H[Menú / Mapa / Favoritos]
     H --> I[AR: instructions → rarv]
 ```
 
-1. **Splash** (`app/index.tsx`): animación de marca y redirección a `/login`.
-2. **Login / registro**: credenciales en SQLite; sesión guardada en `AsyncStorage` bajo la clave `sesion`.
-3. **Home** (`app/(tabs)/index.tsx`): carga SQLite, sincroniza Overpass si hace falta, filtra por cocina y muestra tarjetas (mock + API).
+1. **Splash** (`app/index.tsx`): animación y evaluación de sesión (`AsyncStorage`). Si hay sesión activa → Home, si no hay → Selección de rol (`/role-selection`).
+2. **Login / registro (Separado por Roles)**: credenciales en SQLite; sesión guardada en `AsyncStorage` bajo la clave `sesion`. Funcional para usuarios y establecimientos.
+3. **Home** (`app/(tabs)/index.tsx`): carga SQLite, sincroniza Overpass si hace falta, filtra por cocina.
 4. **Perfil** (`app/(tabs)/perfil.tsx`): edita datos del usuario y gestiona contactos de emergencia.
 5. **Detalle** (`app/restaurant/[id].tsx`): consulta por `id_restaurante`, favoritos, menú y mapa.
 6. **AR**: menú → instrucciones → `rarv` con modelo 3D (`moldelRA` en AsyncStorage).

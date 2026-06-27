@@ -22,6 +22,9 @@ Pragmas aplicados al inicio:
 
 ```mermaid
 erDiagram
+    usuarios ||--o{ clientes : tiene
+    usuarios ||--o{ restaurantes : administra
+    tipo_usuario ||--o{ usuarios : clasifica
     usuarios ||--o{ preferencias : tiene
     usuarios ||--o{ favoritos : guarda
     usuarios ||--o{ historial_busquedas : realiza
@@ -44,7 +47,8 @@ Almacena establecimientos sincronizados desde Overpass o datos locales.
 
 | Columna | Tipo | Notas |
 |---------|------|--------|
-| `id_restaurante` | TEXT PK | ID de nodo OSM u otro identificador |
+| `id_restaurante` | INTEGER PK AUTOINCREMENT | |
+| `id_usuario` | INTEGER NOT NULL | FK → usuarios |
 | `nombre` | TEXT NOT NULL | |
 | `descripcion` | TEXT | |
 | `tipo_comida` | TEXT | Cuisine / categoría |
@@ -64,13 +68,34 @@ Almacena establecimientos sincronizados desde Overpass o datos locales.
 | Columna | Tipo | Notas |
 |---------|------|--------|
 | `id_usuario` | INTEGER PK AUTOINCREMENT | |
-| `nombre` | TEXT NOT NULL | |
 | `email` | TEXT UNIQUE | |
 | `password` | TEXT NOT NULL | ⚠️ texto plano |
+| `id_tipo_usuario` | INTEGER FK | Default: 1 (Ref: `tipo_usuario`) |
+| `ubicacion` | TEXT | Añadida por migración `ALTER TABLE` |
+| `fecha_registro` | TEXT | Default `CURRENT_TIMESTAMP` |
+
+---
+
+### `clientes`
+
+Datos personales de los usuarios regulares.
+
+| Columna | Tipo | Notas |
+|---------|------|--------|
+| `id_cliente` | INTEGER PK AUTOINCREMENT | |
+| `id_usuario` | INTEGER NOT NULL | FK → usuarios |
+| `nombre` | TEXT NOT NULL | |
 | `fecha_nacimiento` | TEXT | |
 | `telefono` | TEXT | |
-| `ubicacion` | TEXT | Añadida por migración `ALTER TABLE`; editable en Perfil |
-| `fecha_registro` | TEXT | Default `CURRENT_TIMESTAMP` |
+
+---
+
+### `tipo_usuario`
+
+| Columna | Tipo | Notas |
+|---------|------|--------|
+| `id_tipo_usuario` | INTEGER PK AUTOINCREMENT | |
+| `tipo_usuario` | TEXT NOT NULL | Ej: 'cliente', 'restaurante', 'sistema' |
 
 ---
 
@@ -206,10 +231,10 @@ Funciones expuestas al resto de la app:
 
 | Método | Descripción |
 |--------|-------------|
-| `insertarDemos(rest)` | Inserta categorías y platos demo para cada `Restaurant` |
-| `registrarUsuario(user)` | Alta; devuelve `{ mensaje, state }` |
-| `iniciarSesion(correo, contraseña)` | Devuelve fila de usuario o `false` |
-| `actualizarUsuario(id, campo, valor)` | Actualiza `nombre`, `email`, `telefono` o `ubicacion`; valida email único |
+| `insertarDemos(rest)` | Inserta categorías y platos demo para cada restaurante |
+| `registrarUsuario(user)` | Alta; devuelve `{ mensaje, state, usuario }` |
+| `iniciarSesion(correo, contraseña, tipo)` | Devuelve datos según rol (cliente o restaurante) o `false` |
+| `actualizarUsuario(id, campo, valor)` | Actualiza `nombre`/`telefono` en `clientes`, o `email`/`ubicacion` en `usuarios` |
 | `agregarContactoEmergencia(id, contacto)` | INSERT en `contactos_emergencia`; valida campos |
 | `listarContactosEmergencia(idUsuario)` | Lista ordenada por fecha descendente |
 | `agregarFavoritos(idRest, idUser)` | INSERT en favoritos |
@@ -218,6 +243,11 @@ Funciones expuestas al resto de la app:
 | `listarFavoritosUsuario(idUsuario)` | JOIN restaurantes + favoritos |
 | `listarMenuRestaurante(idRest)` | Platos del restaurante |
 | `obtenerUsuarioCorreo(email)` | Usuario por email |
+| `obtenerUsuarioPorId(id)` | Usuario por ID |
+| `registrarRestaurantes(restaurante)` | Alta; geocodifica dirección y crea usuario |
+| `registrarPlato(plato)` | Alta de nuevo plato en base de datos para el restaurante |
+| `actualizarRestaurante(idRestaurante, campo, valor)` | Actualiza un campo del restaurante |
+| `obtenerCategorias()` | Obtiene la lista de categorías |
 
 Acceso directo: `db` (instancia `SQLiteDatabase`) e `isReady: true` cuando el provider está montado.
 
@@ -305,7 +335,7 @@ No forma parte de SQLite pero almacena estado de sesión y AR:
 
 | Clave | Uso |
 |-------|-----|
-| `sesion` | JSON del usuario logueado |
+| `sesion` | JSON del usuario o restaurante logueado |
 | `ubicacionUsuario` | Última ubicación cacheada |
 | `moldelRA` | Clave del modelo 3D para AR/VR |
 
