@@ -10,7 +10,12 @@ import React, { useCallback, useState } from 'react';
 import { Alert, Dimensions, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Defs, Path, Rect, Stop, Svg, LinearGradient as SvgGradient } from 'react-native-svg';
 
+import { useBaseDeDatos, Platos, RestauranteI } from "../../hooks/dataBase";
+import { ImagenAnimada } from "@/components/ImagenAnimada";
+
 const { width } = Dimensions.get('window');
+
+
 
 function MetricCard({ icon, title, value, increment, variantColor }: any) {
   return (
@@ -84,13 +89,14 @@ function BarChartLlamativa() {
 }
 
 export default function RestaurantHomeScreen() {
-  const [platos, setPlatos] = useState<any[]>([]);
-  const [nombreRestaurante, setNombreRestaurante] = useState("Restaurante");
+  const { listarMenuRestaurante } = useBaseDeDatos();
+  const [platos, setPlatos] = useState<Platos[]>([]);
+  const [restaurante, setRestaurante] = useState<RestauranteI | null>(null);
   const [planActual, setPlanActual] = useState<string | null>(null);
 
   // Estados para edición
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [editingPlato, setEditingPlato] = useState<any>(null);
+  const [editingPlato, setEditingPlato] = useState<Platos | null>(null);
   const [editNombre, setEditNombre] = useState('');
   const [editDescripcion, setEditDescripcion] = useState('');
   const [editFotos, setEditFotos] = useState<string[]>([]);
@@ -98,10 +104,13 @@ export default function RestaurantHomeScreen() {
   useFocusEffect(
     useCallback(() => {
       const fetchSession = async () => {
-        const stored = await AsyncStorage.getItem('@sesion_restaurante');
+        const stored = await AsyncStorage.getItem('sesion');
         if (stored) {
-          const p = JSON.parse(stored);
-          setNombreRestaurante(p.nombre || "Restaurante");
+          const sesion: RestauranteI = JSON.parse(stored);
+          setRestaurante(sesion);
+
+          const lista = await listarMenuRestaurante(String(sesion.id_restaurante));
+          setPlatos([...lista].reverse());
         }
         const planData = await AsyncStorage.getItem('@plan_restaurante');
         if (planData) {
@@ -112,23 +121,11 @@ export default function RestaurantHomeScreen() {
         }
       };
 
-      const cargarPlatos = async () => {
-        try {
-          const almacenados = await AsyncStorage.getItem('@platos_restaurante');
-          if (almacenados) {
-            setPlatos(JSON.parse(almacenados).reverse());
-          }
-        } catch (error) {
-          console.log(error);
-        }
-      };
-
       fetchSession();
-      cargarPlatos();
     }, [])
   );
 
-  const handleDeletePlato = async (id: string) => {
+  const handleDeletePlato = (id: number) => {
     Alert.alert(
       "Eliminar Plato",
       "¿Estás seguro de que quieres eliminar este plato? Esta acción no se puede deshacer.",
@@ -137,31 +134,19 @@ export default function RestaurantHomeScreen() {
         {
           text: "Eliminar",
           style: "destructive",
-          onPress: async () => {
-            try {
-              const almacenados = await AsyncStorage.getItem('@platos_restaurante');
-              if (almacenados) {
-                const listado = JSON.parse(almacenados);
-                const nuevoListado = listado.filter((p: any) => p.id !== id);
-                await AsyncStorage.setItem('@platos_restaurante', JSON.stringify(nuevoListado));
-                setPlatos(nuevoListado.reverse());
-              }
-            } catch (error) {
-              console.log(error);
-              Alert.alert("Error", "No se pudo eliminar el plato.");
-            }
+          onPress: () => {
+            setPlatos(prev => prev.filter(p => p.id_plato !== id));
           }
         }
       ]
     );
   };
 
-  const handleEditPlato = (plato: any) => {
+  const handleEditPlato = (plato: Platos) => {
     setEditingPlato(plato);
     setEditNombre(plato.nombre);
     setEditDescripcion(plato.descripcion);
-    // Manejar compatibilidad con datos viejos
-    setEditFotos(plato.fotos || (plato.foto ? [plato.foto] : []));
+    setEditFotos(plato.imagen_url ? [plato.imagen_url] : []);
     setIsEditModalVisible(true);
   };
 
@@ -193,35 +178,22 @@ export default function RestaurantHomeScreen() {
     }
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = () => {
     if (!editNombre.trim() || !editDescripcion.trim()) {
       Alert.alert("Error", "El nombre y la descripción no pueden estar vacíos.");
       return;
     }
+    if (!editingPlato) return;
 
-    try {
-      const almacenados = await AsyncStorage.getItem('@platos_restaurante');
-      if (almacenados) {
-        const listado = JSON.parse(almacenados);
-        const index = listado.findIndex((p: any) => p.id === editingPlato.id);
-        if (index !== -1) {
-          listado[index] = {
-            ...listado[index],
-            nombre: editNombre,
-            descripcion: editDescripcion,
-            fotos: editFotos,
-            foto: editFotos.length > 0 ? editFotos[0] : null, // Mantener compatibilidad por si a caso
-          };
-          await AsyncStorage.setItem('@platos_restaurante', JSON.stringify(listado));
-          setPlatos(listado.reverse());
-          setIsEditModalVisible(false);
-          Alert.alert("Éxito", "Plato actualizado correctamente.");
-        }
-      }
-    } catch (error) {
-      console.log(error);
-      Alert.alert("Error", "No se pudo actualizar el plato.");
-    }
+    setPlatos(prev =>
+      prev.map(p =>
+        p.id_plato === editingPlato.id_plato
+          ? { ...p, nombre: editNombre, descripcion: editDescripcion, imagen_url: editFotos[0] ?? p.imagen_url }
+          : p
+      )
+    );
+    setIsEditModalVisible(false);
+    Alert.alert("Éxito", "Plato actualizado correctamente.");
   };
 
   return (
@@ -235,7 +207,7 @@ export default function RestaurantHomeScreen() {
         >
           <View style={styles.headerTop}>
             <View>
-              <Text style={styles.greetingHeader}>¡Hola, {nombreRestaurante}! 👋</Text>
+              <Text style={styles.greetingHeader}>¡Hola, {restaurante?.nombre ?? 'Restaurante'}! 👋</Text>
               <Text style={styles.subtitleHeader}>Aquí está el resumen de hoy</Text>
               <View style={styles.planBadge}>
                 <Ionicons name="star" size={12} color={Colors.primary} style={{ marginRight: 4 }} />
@@ -284,46 +256,37 @@ export default function RestaurantHomeScreen() {
                 <Text style={styles.noPlatesText}>Aún no has agregado platos a tu menú.</Text>
               </View>
             ) : (
-              platos.map((plato) => {
-                const displayFotos = plato.fotos || (plato.foto ? [plato.foto] : []);
-                return (
-                  <View key={plato.id} style={styles.dishCard}>
-                    <View style={styles.dishImagesContainer}>
-                      {displayFotos.length > 0 ? (
-                        displayFotos.map((f: string, i: number) => (
-                          <Image
-                            key={i}
-                            source={{ uri: f }}
-                            style={[
-                              styles.dishImage,
-                              displayFotos.length === 2 ? { width: 40, height: 75, marginRight: 2 } : { width: 75, height: 75 }
-                            ]}
-                          />
-                        ))
-                      ) : (
-                        <View style={styles.dishImagePlaceholder}>
-                          <Ionicons name="image-outline" size={24} color={Colors.textLight} />
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.dishInfo}>
-                      <Text style={styles.dishName}>{plato.nombre}</Text>
-                      <Text style={styles.dishDesc} numberOfLines={2}>
-                        {plato.descripcion}
-                      </Text>
-                    </View>
-                    <TouchableOpacity style={styles.manageButton} onPress={() => handleEditPlato(plato)}>
-                      <Ionicons name="pencil" size={18} color={Colors.textWhite} />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.manageButton, { backgroundColor: Colors.error, marginRight: 0 }]} 
-                      onPress={() => handleDeletePlato(plato.id)}
-                    >
-                      <Ionicons name="trash-outline" size={18} color={Colors.textWhite} />
-                    </TouchableOpacity>
+              platos.map((plato) => (
+                <View key={plato.id_plato} style={styles.dishCard}>
+                  <View style={styles.dishImagesContainer}>
+                    {plato.imagen_url ? (
+                      <ImagenAnimada
+                        imagenUrl={plato.imagen_url}
+                        style={[styles.dishImage, { width: 75, height: 75 }]}
+                      />
+                    ) : (
+                      <View style={styles.dishImagePlaceholder}>
+                        <Ionicons name="image-outline" size={24} color={Colors.textLight} />
+                      </View>
+                    )}
                   </View>
-                );
-              })
+                  <View style={styles.dishInfo}>
+                    <Text style={styles.dishName}>{plato.nombre}</Text>
+                    <Text style={styles.dishDesc} numberOfLines={2}>
+                      {plato.descripcion}
+                    </Text>
+                  </View>
+                  <TouchableOpacity style={styles.manageButton} onPress={() => handleEditPlato(plato)}>
+                    <Ionicons name="pencil" size={18} color={Colors.textWhite} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.manageButton, { backgroundColor: Colors.error, marginRight: 0 }]}
+                    onPress={() => handleDeletePlato(plato.id_plato)}
+                  >
+                    <Ionicons name="trash-outline" size={18} color={Colors.textWhite} />
+                  </TouchableOpacity>
+                </View>
+              ))
             )}
           </View>
         </View>
@@ -364,30 +327,25 @@ export default function RestaurantHomeScreen() {
                 numberOfLines={4}
               />
 
-              <Text style={styles.inputLabel}>Fotos (Máx 2)</Text>
+              <Text style={styles.inputLabel}>Foto</Text>
               <View style={styles.editFotosRow}>
-                {[0, 1].map((idx) => {
-                  const hasPhoto = idx < editFotos.length;
-                  return (
-                    <View key={idx} style={styles.editPhotoBox}>
-                      {hasPhoto ? (
-                        <View style={{ width: '100%', height: '100%' }}>
-                          <Image source={{ uri: editFotos[idx] }} style={styles.editPhotoImg} />
-                          <TouchableOpacity
-                            style={styles.removePhotoBadgeSmall}
-                            onPress={() => setEditFotos(editFotos.filter((_, i) => i !== idx))}
-                          >
-                            <Ionicons name="close-circle" size={18} color={Colors.error} />
-                          </TouchableOpacity>
-                        </View>
-                      ) : (
-                        <TouchableOpacity style={styles.addPhotoIcon} onPress={handleSubirFotoEdicion}>
-                          <Ionicons name="add" size={24} color={Colors.textLight} />
-                        </TouchableOpacity>
-                      )}
+                <View style={styles.editPhotoBox}>
+                  {editFotos.length > 0 ? (
+                    <View style={{ width: '100%', height: '100%' }}>
+                      <Image source={{ uri: editFotos[0] }} style={styles.editPhotoImg} />
+                      <TouchableOpacity
+                        style={styles.removePhotoBadgeSmall}
+                        onPress={() => setEditFotos([])}
+                      >
+                        <Ionicons name="close-circle" size={18} color={Colors.error} />
+                      </TouchableOpacity>
                     </View>
-                  );
-                })}
+                  ) : (
+                    <TouchableOpacity style={styles.addPhotoIcon} onPress={handleSubirFotoEdicion}>
+                      <Ionicons name="add" size={24} color={Colors.textLight} />
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
 
               <TouchableOpacity style={styles.saveEditButton} onPress={handleSaveEdit}>

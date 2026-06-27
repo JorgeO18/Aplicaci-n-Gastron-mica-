@@ -17,21 +17,27 @@ import { Colors } from '@/constants/colors';
 import { Spacing } from '@/constants/spacing';
 import { Typography } from '@/constants/typography';
 import Logo from '@/components/Logo';
+import { useBaseDeDatos } from '@/hooks/dataBase';
 
 export default function RestaurantRegisterScreen() {
   const router = useRouter();
   
   const [nombre, setNombre] = useState('');
+  const [descripcion, setDescripcion] = useState('')
+  const [tipoCocina, setTipoCocina] = useState('');
   const [direccion, setDireccion] = useState('');
   const [telefono, setTelefono] = useState('');
-  const [tipoCocina, setTipoCocina] = useState('');
   const [horario, setHorario] = useState('');
+  const [correo,setCorreo] = useState('')
   const [contraseña, setContrasena] = useState('');
   const [contraseña2, setContrasena2] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { db, isReady, registrarRestaurantes } = useBaseDeDatos();
+  const localSesion = 'sesion'
 
   const registrarRestaurante = async () => {
+    if (!isReady || !db) return;
     if (
       nombre.trim() === '' || 
       direccion.trim() === '' || 
@@ -39,23 +45,31 @@ export default function RestaurantRegisterScreen() {
       tipoCocina.trim() === '' || 
       horario.trim() === '' ||
       contraseña.trim() === '' ||
-      contraseña2.trim() === ''
+      contraseña2.trim() === '' ||
+      correo.trim() === '' ||
+      descripcion.trim() === ''
     ) {
       alert('Rellene todos los campos');
     } else if (contraseña !== contraseña2) {
       alert('Las contraseñas no coinciden');
     } else {
       const restData = { 
-        nombre, 
-        ubicacion: direccion, 
-        telefono, 
+        nombre : nombre,
+        descripcion : descripcion, 
         tipo_comida: tipoCocina, 
-        horario,
-        password: contraseña // Guardamos la contraseña en la sesión simulada
+        direccion: direccion, 
+        telefono : telefono, 
+        horario : horario,
+        contraseña: contraseña,
+        correo : correo
       };
-      await AsyncStorage.setItem('@sesion_restaurante', JSON.stringify(restData));
-      alert('Restaurante registrado con éxito. Bienvenido al panel administrativo.');
-      router.replace('/(restaurant-tabs)');
+      const {mensaje,state,restaurante} = await registrarRestaurantes(restData);
+      alert(mensaje)
+      if (state && restaurante) {
+        await AsyncStorage.setItem(localSesion, JSON.stringify(restaurante));
+        router.replace('/(restaurant-tabs)');
+      }
+      
     }
   };
 
@@ -101,6 +115,37 @@ export default function RestaurantRegisterScreen() {
               autoCapitalize="words"
             />
           </View>
+
+            {/* Campo Correo */}
+          <View style={styles.inputContainer}>
+            <Icon name="mail-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              value={correo}
+              onChangeText={setCorreo}
+              placeholder="Correo electrónico"
+              placeholderTextColor={Colors.textLight}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </View>
+
+          {/* Campo Descripción */}
+          <View style={[styles.inputContainer, styles.inputContainerMultiline]}>
+            <Icon name="document-text-outline" size={20} color={Colors.textLight} style={[styles.inputIcon, { marginTop: 10 }]} />
+            <TextInput
+              style={[styles.input, styles.inputMultiline]}
+              value={descripcion}
+              onChangeText={setDescripcion}
+              placeholder="Descripción del restaurante"
+              placeholderTextColor={Colors.textLight}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+          </View>
+
+          
 
           {/* Campo Dirección */}
           <View style={styles.inputContainer}>
@@ -267,6 +312,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     borderWidth: 1,
     borderColor: '#EFEFEF', // Ligero borde para igualar el aspecto visual
+  },
+  inputContainerMultiline: {
+    height: 90,
+    alignItems: 'flex-start',
+    paddingVertical: Spacing.sm,
+  },
+  inputMultiline: {
+    height: 70,
+    textAlignVertical: 'top',
   },
   inputIcon: {
     marginRight: Spacing.sm,

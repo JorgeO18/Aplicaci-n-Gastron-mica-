@@ -19,7 +19,7 @@ import {
 } from "react-native";
 //imports necesarios para manejo de api y datos
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useBaseDeDatos , Usuarios,RestauranteI } from "../../hooks/dataBase";
+import { useBaseDeDatos, Usuarios, RestauranteI } from "../../hooks/dataBase";
 import { getDistanceInMeters } from "../../hooks/distance";
 import { reverseGeocode } from "../../hooks/reverseGeocode";
 import { useLocation } from "../../hooks/useLocation";
@@ -84,8 +84,8 @@ export default function HomeScreen() {
   const router = useRouter();
   //Manejo de datos y api
   const { db, isReady, insertarDemos } = useBaseDeDatos();
-  const localSesion = 'sesion'
-  const [user, setUser] = useState<Usuarios | null>(null)
+  const localSesion = "sesion";
+  const [user, setUser] = useState<Usuarios | null>(null);
   const { location, error: errorlo, loading: loadingLo } = useLocation();
   const {
     restaurants,
@@ -108,12 +108,11 @@ export default function HomeScreen() {
   useEffect(() => {
     const iniciarBD = async () => {
       if (user === null) {
-        const isLogin = await AsyncStorage.getItem(localSesion)
-        const u :Usuarios = JSON.parse(isLogin!)
-        setUser(u)
-        
+        const isLogin = await AsyncStorage.getItem(localSesion);
+        const u: Usuarios = JSON.parse(isLogin!);
+        setUser(u);
       }
-     
+
       if (!isReady || !db) return;
 
       const result = await db.getAllAsync<RestauranteI>(`
@@ -138,6 +137,7 @@ export default function HomeScreen() {
 
       const ubi = await AsyncStorage.getItem(LOCAL_KEY);
       if (ubi) lastFetchRef.current = JSON.parse(ubi); // ← ref, no estado
+      //console.log(location, '   ', bdCargadaRef.current)
     };
 
     iniciarBD();
@@ -152,7 +152,7 @@ export default function HomeScreen() {
 
       if (!last) {
         // Primera vez: pedir a la API
-        fetchRestaurants(location.latitude, location.longitude);
+        await fetchRestaurants(location.latitude, location.longitude);
         lastFetchRef.current = location;
         await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(location));
         return;
@@ -180,7 +180,6 @@ export default function HomeScreen() {
 
   // 3. Cuando llegan restaurantes de la API y la BD está lista, guardar y mostrar
   useEffect(() => {
-    
     if (!db || restaurants.length === 0) return;
     guardarRestaurants();
   }, [db, restaurants]);
@@ -221,7 +220,8 @@ export default function HomeScreen() {
             "",
             item.latitude,
             item.longitude,
-            item.image ?? null,
+            item.image ??
+              "https://cloudfront-us-east-1.images.arcpublishing.com/bloomberglinea/H6P7BHWDTVFYTC4K6NUF3TBA7I.jpeg",
             item.phone ?? "8569435741",
             item.openingHours ?? null,
             "api",
@@ -229,7 +229,11 @@ export default function HomeScreen() {
         );
         console.log("✅ Guardado:", item.name);
       } catch (err) {
-        console.warn("❌ Advertencia guardando restaurante (FK):", item.id, err);
+        console.warn(
+          "❌ Advertencia guardando restaurante (FK):",
+          item.id,
+          err,
+        );
       }
     }
 
@@ -378,11 +382,13 @@ export default function HomeScreen() {
               <RestaurantCard
                 key={restaurant.id_restaurante}
                 name={restaurant.nombre}
-                image={require("../../assets/images/restaurant_banner.png")}
+                image={{ uri: restaurant.imagen_url }}
                 distance={restaurant.direccion ?? ""}
                 cuisine={restaurant.tipo_comida ?? ""}
                 variant="horizontal"
-                onPress={() => router.push(`/restaurant/${restaurant.id_restaurante}`)}
+                onPress={() =>
+                  router.push(`/restaurant/${restaurant.id_restaurante}`)
+                }
               />
             ))
           )}

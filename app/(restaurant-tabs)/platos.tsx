@@ -1,130 +1,145 @@
 import { Colors } from '@/constants/colors';
 import { Spacing } from '@/constants/spacing';
 import { Typography } from '@/constants/typography';
+import { seleccionarImagen } from '@/hooks/archivos';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Categorias, PlatosI, RestauranteI, useBaseDeDatos } from '../../hooks/dataBase';
 
 export default function PlatosScreen() {
   const router = useRouter();
+  const { db, isReady, registrarPlato, obtenerCategorias } = useBaseDeDatos();
+
+  // ── Datos del formulario ──────────────────────────────────────────────────
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
+  const [precio, setPrecio] = useState('');
   const [fotos, setFotos] = useState<string[]>([]);
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<number | null>(null);
+  const [disponible, setDisponible] = useState(true);
 
-  // Eliminamos el hook que puede causar problemas de registro en Android
-  // const [permissionStatus, requestPermission] = ImagePicker.useMediaLibraryPermissions();
+  // ── Datos auxiliares ──────────────────────────────────────────────────────
+  const [categorias, setCategorias] = useState<Categorias[]>([]);
+  const [guardando, setGuardando] = useState(false);
 
-  const MAX_FOTOS = 2;
+  // ── Carga de categorías ───────────────────────────────────────────────────
+  useEffect(() => {
+    const cargarCategoria = async () => {
+      if (!isReady || !db) return;
+      const categoriaBd = await obtenerCategorias();
+      if (categoriaBd) setCategorias(categoriaBd);
+    };
+    cargarCategoria();
+  }, [isReady, db]);
 
+  // ── Selección de imagen via hook archivos.ts ──────────────────────────────
   const handleSubirFoto = async () => {
-    if (fotos.length >= MAX_FOTOS) {
-      alert(`Máximo ${MAX_FOTOS} fotos permitidas`);
+    if (fotos.length >= 2) {
+      alert('Máximo 2 fotos permitidas.');
       return;
     }
-
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      alert("Necesitamos permisos para acceder a tu galería de fotos.");
-      return;
-    }
-
-    try {
-      let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setFotos([...fotos, result.assets[0].uri]);
-      }
-    } catch (e) {
-      alert('Hubo un error al abrir la galería.');
-      console.log(e);
-    }
+    const uri = await seleccionarImagen();
+    if (uri) setFotos(prev => [...prev, uri]);
   };
 
-  const handleGuardar = async () => {
-    if (!nombre.trim() || !descripcion.trim()) {
-      alert("Comienza por darle un nombre y descripción al plato.");
+  // ── Limpiar formulario ────────────────────────────────────────────────────
+  const limpiarFormulario = () => {
+    setNombre('');
+    setDescripcion('');
+    setPrecio('');
+    setFotos([]);
+    setCategoriaSeleccionada(null);
+    setDisponible(true);
+  };
+
+  // ── Registrar plato en la BD ──────────────────────────────────────────────
+  const registrar = async () => {
+    if (!isReady || !db) return;
+
+    if (!nombre.trim()) {
+      alert('El nombre del platillo es obligatorio.');
+      return;
+    }
+    if (!descripcion.trim()) {
+      alert('La descripción es obligatoria.');
+      return;
+    }
+    if (!precio.trim() || isNaN(Number(precio)) || Number(precio) <= 0) {
+      alert('Ingresa un precio válido.');
+      return;
+    }
+    if (categoriaSeleccionada === null) {
+      alert('Selecciona una categoría para el platillo.');
       return;
     }
 
-    // Verificar límite de platos según plan
-    try {
-      const almacenados = await AsyncStorage.getItem('@platos_restaurante');
-      const listado = almacenados ? JSON.parse(almacenados) : [];
-      const planData = await AsyncStorage.getItem('@plan_restaurante');
-      const plan = planData ? JSON.parse(planData) : null;
-      const MAX_GRATIS = 2;
-      const MAX_BASICO = 10;
-      const MAX_PRO = 30;
-
-      // Sin plan: solo 2 platos
-      if (!plan && listado.length >= MAX_GRATIS) {
-        alert(`Has alcanzado el límite de ${MAX_GRATIS} platos del plan gratuito. Suscríbete para agregar más.`);
-        router.push('/planes' as any);
-        return;
-      }
-      // Plan básico: hasta 10 platos
-      if (plan?.id === 'basico' && listado.length >= MAX_BASICO) {
-        alert(`Tu plan Básico permite hasta ${MAX_BASICO} platos. Actualiza tu plan para agregar más.`);
-        router.push('/planes' as any);
-        return;
-      }
-      // Plan pro: hasta 30 platos
-      if (plan?.id === 'pro' && listado.length >= MAX_PRO) {
-        alert(`Tu plan Pro permite hasta ${MAX_PRO} platos. Actualiza al plan Premium para agregar más.`);
-        router.push('/planes' as any);
-        return;
-      }
-    } catch (e) {
-      console.warn('Error verificando plan:', e);
+    const isLogin = await AsyncStorage.getItem('sesion');
+    if (!isLogin) {
+      alert('No hay sesión activa. Inicia sesión como restaurante.');
+      return;
     }
+    const sesion: RestauranteI = JSON.parse(isLogin);
+    const idRestaurante: string = sesion.id_restaurante?.toString() ?? '0';
 
-    const nuevoPlato = {
-      id: Date.now().toString(),
-      nombre,
-      descripcion,
-      fotos: fotos, // Guardamos todas las fotos seleccionadas (máximo 2)
+    const nuevoPlato: PlatosI = {
+      id_restaurante: idRestaurante,
+      id_categoria: categoriaSeleccionada,
+      nombre: nombre.trim(),
+      descripcion: descripcion.trim(),
+      precio: Number(precio),
+      imagen_url: fotos.length > 0 ? JSON.stringify(fotos) : '', // Guardamos ambas fotos como JSON string
     };
 
     try {
-      const almacenados = await AsyncStorage.getItem('@platos_restaurante');
-      let listado = almacenados ? JSON.parse(almacenados) : [];
-      listado.push(nuevoPlato);
-      await AsyncStorage.setItem('@platos_restaurante', JSON.stringify(listado));
-
-      alert("Plato guardado con éxito.");
-      setNombre('');
-      setDescripcion('');
-      setFotos([]);
+      setGuardando(true);
+      await registrarPlato(nuevoPlato);
+      alert('¡Platillo registrado con éxito!');
+      limpiarFormulario();
     } catch (e) {
-      alert("Error al guardar plato.");
+      console.log('Error al registrar plato:', e);
+      alert('No se pudo registrar el platillo. Inténtalo de nuevo.');
+    } finally {
+      setGuardando(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <ScrollView contentContainerStyle={styles.scrollContent}>
 
+        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Agrega un Platillo</Text>
-          <Text style={styles.headerSub}>Sube fotos, nombre y descripción y ofrécelo a tus clientes.</Text>
+          <Text style={styles.headerSub}>
+            Sube una foto, completa los datos y ofrécelo a tus clientes.
+          </Text>
         </View>
 
-        {/* Zona de Drag/Drop (Subir fotos) */}
+        {/* ── Fotos ─────────────────────────────────────────────────────── */}
         <TouchableOpacity style={styles.uploadArea} onPress={handleSubirFoto} activeOpacity={0.7}>
           <View style={styles.iconCircle}>
             <Ionicons name="cloud-upload" size={28} color={Colors.primary} />
           </View>
-          <Text style={styles.uploadTitle}>Seleccionar de Galería</Text>
-          <Text style={styles.uploadSub}>Toca aquí para seleccionar una imagen</Text>
+          <Text style={styles.uploadTitle}>Seleccionar imagen</Text>
+          <Text style={styles.uploadSub}>Puedes subir hasta 2 fotos (opcional)</Text>
         </TouchableOpacity>
 
         {/* Placeholders / Miniaturas */}
@@ -132,26 +147,26 @@ export default function PlatosScreen() {
           {[0, 1].map((index) => {
             const hasPhoto = index < fotos.length;
             return (
-              <View key={index} style={[styles.thumbnailBox, { width: '48%' }]}>
+              <View key={index} style={[styles.thumbnailBox, { width: '48%' }]} pointerEvents="box-none">
                 {hasPhoto ? (
                   <View style={{ width: '100%', height: '100%' }}>
-                    <Image source={{ uri: fotos[index] }} style={styles.thumbnailImg} />
-                    <TouchableOpacity 
-                      style={styles.removePhotoBadge} 
+                    <Image source={{ uri: fotos[index] }} style={styles.thumbnailImg} resizeMode="cover" />
+                    <TouchableOpacity
+                      style={styles.removePhotoBadgeList}
                       onPress={() => setFotos(fotos.filter((_, i) => i !== index))}
                     >
-                      <Ionicons name="close-circle" size={20} color={Colors.error} />
+                      <Ionicons name="close-circle" size={24} color={Colors.error} />
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <Ionicons name="image-outline" size={24} color={Colors.textLight} />
+                  <Ionicons name="image-outline" size={28} color={Colors.textLight} />
                 )}
               </View>
             );
           })}
         </View>
 
-        {/* Formulario */}
+        {/* ── Nombre ─────────────────────────────────────────────────────── */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -162,13 +177,29 @@ export default function PlatosScreen() {
           />
         </View>
 
+        {/* ── Precio ─────────────────────────────────────────────────────── */}
+        <View style={styles.inputContainer}>
+          <View style={styles.precioRow}>
+            <Text style={styles.precioSimbolo}>$</Text>
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              placeholder="Precio..."
+              placeholderTextColor={Colors.textLight}
+              value={precio}
+              onChangeText={t => setPrecio(t.replace(/[^0-9.]/g, ''))}
+              keyboardType="decimal-pad"
+            />
+          </View>
+        </View>
+
+        {/* ── Descripción ────────────────────────────────────────────────── */}
         <View style={styles.textAreaContainer}>
           <TextInput
             style={styles.textArea}
             placeholder="Escribe una pequeña descripción o los ingredientes principales..."
             placeholderTextColor={Colors.textLight}
             value={descripcion}
-            onChangeText={(t) => { if (t.length <= 300) setDescripcion(t) }}
+            onChangeText={t => { if (t.length <= 300) setDescripcion(t); }}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
@@ -176,15 +207,62 @@ export default function PlatosScreen() {
           <Text style={styles.charCount}>{descripcion.length}/300</Text>
         </View>
 
-        {/* Guardar */}
-        <TouchableOpacity onPress={handleGuardar} activeOpacity={0.8} style={{ marginTop: Spacing.xl }}>
+        {/* ── Categoría ──────────────────────────────────────────────────── */}
+        <Text style={styles.sectionLabel}>Categoría</Text>
+        {categorias.length === 0 ? (
+          <Text style={styles.emptyCategoria}>Sin categorías disponibles</Text>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriasScroll}>
+            {categorias.map(cat => {
+              const seleccionada = categoriaSeleccionada === cat.id_categoria;
+              return (
+                <TouchableOpacity
+                  key={cat.id_categoria}
+                  style={[styles.categoriaChip, seleccionada && styles.categoriaChipActiva]}
+                  onPress={() => setCategoriaSeleccionada(cat.id_categoria)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.categoriaChipText, seleccionada && styles.categoriaChipTextActiva]}>
+                    {cat.nombre}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {/* ── Disponible ─────────────────────────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.disponibleRow}
+          onPress={() => setDisponible(prev => !prev)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.toggle, disponible && styles.toggleActivo]}>
+            <View style={[styles.toggleCircle, disponible && styles.toggleCircleActivo]} />
+          </View>
+          <Text style={styles.disponibleLabel}>
+            {disponible ? 'Platillo disponible' : 'No disponible actualmente'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* ── Botón Guardar ──────────────────────────────────────────────── */}
+        <TouchableOpacity
+          onPress={registrar}
+          activeOpacity={0.8}
+          style={{ marginTop: Spacing.xl }}
+          disabled={guardando}
+        >
           <LinearGradient
             colors={[Colors.gradientStart, Colors.gradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.saveButton}
           >
-            <Text style={styles.saveButtonText}>Guardar platillo</Text>
+            {guardando ? (
+              <ActivityIndicator color={Colors.textWhite} />
+            ) : (
+              <Text style={styles.saveButtonText}>Registrar platillo</Text>
+            )}
           </LinearGradient>
         </TouchableOpacity>
 
@@ -201,6 +279,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.xl,
     paddingTop: 60,
+    paddingBottom: 40,
   },
   header: {
     marginBottom: Spacing.xxl,
@@ -215,6 +294,8 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
   },
+
+  // ── Contenedores de Imagen ────────────────────────────────────────────────
   uploadArea: {
     borderWidth: 2,
     borderColor: Colors.primary + '50',
@@ -224,6 +305,38 @@ const styles = StyleSheet.create({
     padding: Spacing.xxl,
     alignItems: 'center',
     marginBottom: Spacing.xl,
+    minHeight: 140,
+    justifyContent: 'center',
+  },
+  thumbnailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xxl,
+    marginTop: -Spacing.md, // para acercarlo al uploadArea
+  },
+  thumbnailBox: {
+    height: 120, // Rectangular para mejor visualización
+    borderRadius: Spacing.borderRadius.lg,
+    backgroundColor: Colors.backgroundGray,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  thumbnailImg: {
+    width: '100%',
+    height: '100%',
+  },
+  removePhotoBadgeList: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    zIndex: 10,
+    elevation: 3,
   },
   iconCircle: {
     width: 60,
@@ -249,31 +362,8 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.sm,
     color: Colors.textLight,
   },
-  thumbnailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.xxl,
-  },
-  thumbnailBox: {
-    width: 70,
-    height: 70,
-    borderRadius: Spacing.borderRadius.lg,
-    backgroundColor: Colors.backgroundGray,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  thumbnailImg: {
-    width: '100%',
-    height: '100%',
-  },
-  removePhotoBadge: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    backgroundColor: 'white',
-    borderRadius: 10,
-  },
+
+  // ── Inputs ────────────────────────────────────────────────────────────────
   inputContainer: {
     backgroundColor: Colors.backgroundGray,
     borderRadius: Spacing.borderRadius.lg,
@@ -285,6 +375,15 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.base,
     color: Colors.textPrimary,
   },
+  precioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  precioSimbolo: {
+    fontSize: Typography.sizes.lg,
+    color: Colors.textSecondary,
+    marginRight: 4,
+  },
   textAreaContainer: {
     backgroundColor: Colors.backgroundGray,
     borderRadius: Spacing.borderRadius.lg,
@@ -292,6 +391,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     height: 120,
     position: 'relative',
+    marginBottom: Spacing.md,
   },
   textArea: {
     flex: 1,
@@ -305,6 +405,79 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.sm,
     color: Colors.textLight,
   },
+
+  // ── Categorías ────────────────────────────────────────────────────────────
+  sectionLabel: {
+    fontSize: Typography.sizes.md,
+    fontWeight: 'bold',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  categoriasScroll: {
+    marginBottom: Spacing.xl,
+  },
+  categoriaChip: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.base,
+    borderRadius: 20,
+    backgroundColor: Colors.backgroundGray,
+    marginRight: Spacing.sm,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  categoriaChipActiva: {
+    backgroundColor: Colors.primary + '18',
+    borderColor: Colors.primary,
+  },
+  categoriaChipText: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textSecondary,
+  },
+  categoriaChipTextActiva: {
+    color: Colors.primary,
+    fontWeight: 'bold',
+  },
+  emptyCategoria: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textLight,
+    marginBottom: Spacing.xl,
+  },
+
+  // ── Disponible toggle ─────────────────────────────────────────────────────
+  disponibleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  toggle: {
+    width: 46,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: Colors.backgroundGray,
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    marginRight: Spacing.md,
+  },
+  toggleActivo: {
+    backgroundColor: Colors.primary,
+  },
+  toggleCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.textWhite,
+    alignSelf: 'flex-start',
+  },
+  toggleCircleActivo: {
+    alignSelf: 'flex-end',
+  },
+  disponibleLabel: {
+    fontSize: Typography.sizes.base,
+    color: Colors.textSecondary,
+  },
+
+  // ── Botón guardar ─────────────────────────────────────────────────────────
   saveButton: {
     height: 55,
     borderRadius: Spacing.borderRadius.xl,

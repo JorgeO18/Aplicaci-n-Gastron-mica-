@@ -11,7 +11,9 @@ export async function seleccionarImagen() {
 
     const resultado = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        quality: 1
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
     });
 
     if (!resultado.canceled) {

@@ -12,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -26,7 +27,25 @@ export default function SplashScreen() {
   const finalFade = useSharedValue(1);
 
   const navigateToRoleSelection = () => {
-    router.replace('/role-selection');
+    (async () => {
+      try {
+        const localSesion = 'sesion';
+        const isLogin = await AsyncStorage.getItem(localSesion);
+        
+        if (isLogin !== null) {
+          const sessionData = JSON.parse(isLogin);
+          if (sessionData.id_restaurante) {
+            router.replace('/(restaurant-tabs)');
+          } else {
+            router.replace('/(tabs)');
+          }
+        } else {
+          router.replace('/role-selection');
+        }
+      } catch (error) {
+        router.replace('/role-selection');
+      }
+    })();
   };
 
   useEffect(() => {

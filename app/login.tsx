@@ -28,30 +28,17 @@ export default function LoginScreen() {
   const { db, isReady, iniciarSesion } = useBaseDeDatos();
   const localSesion = 'sesion'
 
-  useEffect(()=>{
-    const haySesion = async ()=>{
-      
-      const isLogin = await AsyncStorage.getItem(localSesion)
-      
-      if(isLogin === null)return
-      router.push('./(tabs)')
-    }
-    haySesion()
-
-  })
+  // Session checked on splash
 
   const login =async ()=>{
     if (!isReady || !db) return;
-    const fecha = new Date().toISOString()
     
-    // await db?.runAsync(`
-    //             INSERT INTO usuarios (nombre,email,password,fecha_nacimiento,telefono) VALUES (?,?,?,?,?)`, ["Elier", "elier@gmail.com", "12345",fecha,'3645589613']);
     
     if(contraseña.trim() === '' || correo.trim() === ''){
       alert('Rellene todos los campos')
     }else{
-      const login = await iniciarSesion(correo.trim(),contraseña.trim())
-      
+      const login = await iniciarSesion(correo.trim(),contraseña.trim(),1)
+      console.log(login)
       if(login){
         await AsyncStorage.setItem(localSesion,JSON.stringify(login))
         router.replace('./(tabs)')

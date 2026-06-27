@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import { useSQLiteContext } from 'expo-sqlite';
+import { geocode } from './geocode';
 
 
 export interface Usuarios {
@@ -39,8 +40,7 @@ export interface PlatosI {
     descripcion: string;
     precio: number;
     imagen_url: string;
-    modelo_3d_url: string;
-    disponible: number;
+
 }
 export interface Favoritos {
     id: string;
@@ -65,21 +65,17 @@ export interface ContactoEmergenciaInput {
 }
 
 export interface Restaurante {
-    id_admin: number;
     nombre: string;
     descripcion: string;
     tipo_comida: string;
     direccion: string;
-    ciudad: string;
-    latitud: number;
-    longitud: number;
-    imagen_url: string;
     telefono: string;
     horario: string;
+    contraseña: string;
+    correo: string;
 }
 export interface RestauranteI {
     id_restaurante: number;
-    id_admin: number;
     nombre: string;
     descripcion: string;
     tipo_comida: string;
@@ -90,6 +86,14 @@ export interface RestauranteI {
     imagen_url: string;
     telefono: string;
     horario: string;
+    correo?: string;
+    contraseña?: string;
+}
+
+export type CampoRestaurante = 'nombre' | 'descripcion' | 'tipo_comida' | 'direccion' | 'telefono' | 'horario' | 'correo' | 'contraseña';
+export interface Categorias {
+    id_categoria: number,
+    nombre : string
 }
 
 
@@ -115,13 +119,18 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
             fuente TEXT DEFAULT 'local',
             FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
         );
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
+        CREATE TABLE IF NOT EXISTS clientes(
+            id_cliente INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_usuario INTEGER NOT NULL,
             nombre TEXT NOT NULL,
-            email TEXT UNIQUE,
-            password TEXT NOT NULL,
             fecha_nacimiento TEXT,
             telefono TEXT,
+            FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE,
+            password TEXT NOT NULL,
             id_tipo_usuario INTEGER DEFAULT 1,
             fecha_registro TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (id_tipo_usuario) REFERENCES tipo_usuario(id_tipo_usuario) ON DELETE CASCADE
@@ -151,7 +160,7 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
             descripcion TEXT,
             precio REAL,
             imagen_url TEXT,
-            modelo_3d_url TEXT,
+            modelo_3d_url TEXT DEFAULT 'Untitled',
             disponible INTEGER DEFAULT 1,
             FOREIGN KEY (id_restaurante) REFERENCES restaurantes(id_restaurante) ON DELETE CASCADE,
             FOREIGN KEY (id_categoria) REFERENCES categoria(id_categoria) ON DELETE CASCADE
@@ -229,13 +238,13 @@ export function useBaseDeDatos() {
 
     const insertarDemos = async (rest: RestauranteI[]) => {
         const platos = [
-            [1, 'Mote de queso', 'Sopa tradicional de la región Caribe', 15000.0, '../assets/images/food_soup.png', 'Untitled'],
-            [2, 'Bandeja paisa', 'Plato típico antioqueño con frijoles, arroz y carne', 20000.0, '../assets/images/food_soup.png', 'Untitled'],
-            [1, 'Sancocho de gallina', 'Caldo tradicional preparado con yuca, papa y gallina', 14000.0, '../assets/images/food_soup.png', 'Untitled'],
-            [2, 'Arepa de huevo', 'Arepa frita rellena con huevo típica de la costa', 10000.0, '../assets/images/food_soup.png', 'Untitled'],
-            [1, 'Lechona tolimense', 'Cerdo relleno con arroz y arvejas al estilo tolimense', 22000.0, '../assets/images/food_soup.png', 'Untitled'],
-            [2, 'Ajiaco santafereño', 'Sopa bogotana preparada con pollo y diferentes papas', 18000.0, '../assets/images/food_soup.png', 'Untitled'],
-            [1, 'Tamal valluno', 'Masa de maíz rellena de carne y verduras envuelta en hoja', 15000.0, '../assets/images/food_soup.png', 'Untitled'],
+            [1, 'Mote de queso', 'Sopa tradicional de la región Caribe', 15000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
+            [2, 'Bandeja paisa', 'Plato típico antioqueño con frijoles, arroz y carne', 20000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
+            [1, 'Sancocho de gallina', 'Caldo tradicional preparado con yuca, papa y gallina', 14000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
+            [2, 'Arepa de huevo', 'Arepa frita rellena con huevo típica de la costa', 10000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
+            [1, 'Lechona tolimense', 'Cerdo relleno con arroz y arvejas al estilo tolimense', 22000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
+            [2, 'Ajiaco santafereño', 'Sopa bogotana preparada con pollo y diferentes papas', 18000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
+            [1, 'Tamal valluno', 'Masa de maíz rellena de carne y verduras envuelta en hoja', 15000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
         ];
         const categorias = [
             ['regional', 'Plato tradicional de la region'],
@@ -260,14 +269,11 @@ export function useBaseDeDatos() {
                 }
             }
 
-            await db.runAsync(`INSERT OR IGNORE INTO usuarios (nombre, email, password, fecha_nacimiento, telefono ,id_tipo_usuario) VALUES (?,?,?,?,?,?)`, [
-                'sistema',
-                'sistema@gmail.com',
-                '12345',
-                '',
-                '',
-                3
-            ])
+            // ✅ corregido: usuarios solo tiene email, password e id_tipo_usuario
+            await db.runAsync(
+                `INSERT OR IGNORE INTO usuarios (email, password, id_tipo_usuario) VALUES (?, ?, ?)`,
+                ['sistema@gmail.com', '12345', 3]
+            );
         } catch (error) {
             console.log('Error al insertar datos Demo:', error);
         }
@@ -281,21 +287,48 @@ export function useBaseDeDatos() {
             return { mensaje: 'Correo ya registrado, intente otro o inicie sesión', state: false };
         }
         const resultado = await db.runAsync(
-            `INSERT INTO usuarios (nombre, email, password, fecha_nacimiento, telefono ) VALUES (?, ?, ?, ?, ?)`,
-            [user.nombre, user.email, user.password, user.fecha_nacimiento, user.telefono]
+            `INSERT INTO usuarios (email, password) VALUES (?, ?)`,
+            [user.email, user.password]
         );
+        const cliente = await db.runAsync(
+            `INSERT INTO clientes (id_usuario, nombre, fecha_nacimiento, telefono) VALUES (?, ?, ?, ?)`,
+            [resultado.lastInsertRowId, user.nombre, user.fecha_nacimiento, user.telefono]
+        );
+        // ✅ corregido: sin coma colgante, JOIN explícito entre usuarios y clientes
         const usuario = await db.getFirstAsync<Usuarios>(
-            `SELECT * FROM usuarios WHERE id_usuario = ?`,
-            [resultado.lastInsertRowId]
+            `SELECT c.id_cliente AS id_usuario, c.nombre, u.email, u.password, c.fecha_nacimiento, c.telefono
+             FROM clientes c
+             JOIN usuarios u ON u.id_usuario = c.id_usuario
+             WHERE c.id_cliente = ?`,
+            [cliente.lastInsertRowId]
         );
         return { mensaje: 'Registro exitoso', state: true, usuario: usuario ?? undefined };
     };
 
-    const iniciarSesion = async (correo: string, contraseña: string) => {
+    const iniciarSesion = async (correo: string, contraseña: string, tipo: number) => {
         try {
-            return await db.getFirstAsync(
-                `SELECT * FROM usuarios WHERE email = ? AND password = ?`, [correo, contraseña]
-            ) ?? false;
+            if (tipo === 1) {
+                // ✅ corregido: sin coma colgante, JOIN explícito
+                return await db.getFirstAsync(
+                    `SELECT c.id_cliente AS id_usuario, c.nombre, u.email, u.password, c.fecha_nacimiento, c.telefono
+                     FROM usuarios u
+                     JOIN clientes c ON c.id_usuario = u.id_usuario
+                     WHERE u.email = ? AND u.password = ?`,
+                    [correo, contraseña]
+                ) ?? false;
+
+            } else if (tipo === 2) {
+                // ✅ corregido: tabla "restaurantes" (no "restaurante"), columna id_usuario (no id_admin), JOIN explícito
+                return await db.getFirstAsync(
+                    `SELECT r.id_restaurante, r.nombre, r.descripcion, r.tipo_comida, r.direccion,
+                            r.ciudad, r.latitud, r.longitud, r.imagen_url, r.telefono, r.horario
+                     FROM usuarios u
+                     JOIN restaurantes r ON r.id_usuario = u.id_usuario
+                     WHERE u.email = ? AND u.password = ?`,
+                    [correo, contraseña]
+                ) ?? false;
+            }
+            return false; // ✅ corregido: antes no retornaba nada si tipo no era 1 ni 2
         } catch (error) {
             console.log('Error al iniciar sesión:', error);
             return false;
@@ -361,29 +394,37 @@ export function useBaseDeDatos() {
             return [];
         }
     };
-    const obtenerUsuarioCorreo = async (email: string) => {
-        try {
-            return await db.getFirstAsync<Usuarios>(
-                `SELECT * FROM usuarios WHERE email = ?`,
-                [email.trim()]
-            ) ?? undefined;
-        } catch (error) {
-            console.log('Error al obtener usuario por correo:', error);
-            return undefined;
-        }
-    };
-
     const obtenerUsuarioPorId = async (idUsuario: number) => {
         const id = Number(idUsuario);
         if (!id || Number.isNaN(id)) return undefined;
 
         try {
             return await db.getFirstAsync<Usuarios>(
-                `SELECT * FROM usuarios WHERE id_usuario = ?`,
+                `SELECT u.id_usuario, u.email, u.password, u.ubicacion,
+                    c.nombre, c.telefono, c.fecha_nacimiento
+             FROM usuarios u
+             LEFT JOIN clientes c ON c.id_usuario = u.id_usuario
+             WHERE u.id_usuario = ?`,
                 [id]
             ) ?? undefined;
         } catch (error) {
             console.log('Error al obtener usuario por id:', error);
+            return undefined;
+        }
+    };
+
+    const obtenerUsuarioCorreo = async (email: string) => {
+        try {
+            return await db.getFirstAsync<Usuarios>(
+                `SELECT u.id_usuario, u.email, u.password, u.ubicacion,
+                    c.nombre, c.telefono, c.fecha_nacimiento
+             FROM usuarios u
+             LEFT JOIN clientes c ON c.id_usuario = u.id_usuario
+             WHERE u.email = ?`,
+                [email.trim()]
+            ) ?? undefined;
+        } catch (error) {
+            console.log('Error al obtener usuario por correo:', error);
             return undefined;
         }
     };
@@ -469,6 +510,8 @@ export function useBaseDeDatos() {
                 };
             }
 
+            // ✅ corregido: 'nombre' y 'telefono' viven en la tabla "clientes",
+            // no en "usuarios". 'email' y 'ubicacion' sí viven en "usuarios".
             if (campo === 'email') {
                 const correoExistente = await db.getFirstAsync(
                     `SELECT id_usuario FROM usuarios WHERE email = ? AND id_usuario != ?`,
@@ -477,15 +520,32 @@ export function useBaseDeDatos() {
                 if (correoExistente) {
                     return { mensaje: 'Este correo ya está registrado', state: false };
                 }
-            }
 
-            const resultado = await db.runAsync(
-                `UPDATE usuarios SET ${campo} = ? WHERE id_usuario = ?`,
-                [valorLimpio, id]
-            );
+                const resultado = await db.runAsync(
+                    `UPDATE usuarios SET email = ? WHERE id_usuario = ?`,
+                    [valorLimpio, id]
+                );
+                if (resultado.changes === 0) {
+                    return { mensaje: 'No se pudo actualizar el usuario', state: false };
+                }
 
-            if (resultado.changes === 0) {
-                return { mensaje: 'No se pudo actualizar el usuario', state: false };
+            } else if (campo === 'ubicacion') {
+                const resultado = await db.runAsync(
+                    `UPDATE usuarios SET ubicacion = ? WHERE id_usuario = ?`,
+                    [valorLimpio, id]
+                );
+                if (resultado.changes === 0) {
+                    return { mensaje: 'No se pudo actualizar el usuario', state: false };
+                }
+
+            } else if (campo === 'nombre' || campo === 'telefono') {
+                const resultado = await db.runAsync(
+                    `UPDATE clientes SET ${campo} = ? WHERE id_usuario = ?`,
+                    [valorLimpio, id]
+                );
+                if (resultado.changes === 0) {
+                    return { mensaje: 'No se pudo actualizar el usuario', state: false };
+                }
             }
 
             const usuario = await obtenerUsuarioPorId(id);
@@ -500,38 +560,158 @@ export function useBaseDeDatos() {
         }
     };
 
-    const registrarrestaurante = async (restaurante: Restaurante) => {
+    const registrarRestaurantes = async (restaurante: Restaurante) => {
+        const existeCorreo = await db.getFirstAsync(
+            `SELECT * FROM usuarios WHERE email = ?`, [restaurante.correo]
+        );
+        if (existeCorreo) {
+            return { mensaje: 'Correo ya registrado, intente otro o inicie sesión', state: false };
+        }
+        const ubicacion = await geocode(restaurante.direccion)
+        if (!ubicacion) {
+            return { mensaje: 'No se pudo encontrar la direccion que ingreso', state: false }
+        }
         try {
-            await db.runAsync(`INSERT OR REPLACE INTO restaurantes ( id_admin,nombre, descripcion, tipo_comida, direccion, ciudad,latitud, longitud, imagen_url, telefono, horario) VALUES (?,?,?,?,?,?,?,?,?,?,?)`, [
-                restaurante.id_admin,
-                restaurante.nombre,
-                restaurante.descripcion,
-                restaurante.tipo_comida,
-                restaurante.direccion,
-                restaurante.ciudad,
-                restaurante.latitud,
-                restaurante.longitud,
-                restaurante.imagen_url,
-                restaurante.telefono,
-                restaurante.horario
-            ])
+            const resultado = await db.runAsync(
+                `INSERT INTO usuarios (email, password) VALUES (?, ?)`,
+                [restaurante.correo, restaurante.contraseña]
+            );
+            const newRest = await db.runAsync(
+                `INSERT INTO restaurantes (id_usuario, nombre, descripcion, tipo_comida, direccion, ciudad, latitud, longitud, imagen_url, telefono, horario)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    resultado.lastInsertRowId,
+                    restaurante.nombre,
+                    restaurante.descripcion,
+                    restaurante.tipo_comida,
+                    restaurante.direccion,
+                    ubicacion[0]?.city,
+                    ubicacion[0]?.latitude,
+                    ubicacion[0]?.longitude,
+                    'https://cloudfront-us-east-1.images.arcpublishing.com/bloomberglinea/H6P7BHWDTVFYTC4K6NUF3TBA7I.jpeg',
+                    restaurante.telefono,
+                    restaurante.horario
+                ]
+            );
+
+            const resta = await db.getFirstAsync(
+                `SELECT r.id_restaurante, r.nombre, r.descripcion, r.tipo_comida, r.direccion,
+                            r.ciudad, r.latitud, r.longitud, r.imagen_url, r.telefono, r.horario
+                     FROM usuarios u
+                     JOIN restaurantes r ON r.id_usuario = u.id_usuario
+                     WHERE r.id_restaurante = ?`,
+                [newRest.lastInsertRowId]
+            )
+
+            return { mensaje: 'Registro exitoso', state: true, restaurante: resta ?? undefined }
+
         } catch (error) {
-            console.log('Error al registrar restaurante')
+            console.log('Error al registrar restaurante:', error); // ✅ ahora sí loguea el error real
+            return { mensaje: 'No se hacer el registro', state: false }
         }
     }
     const registrarPlato = async (plato: PlatosI) => {
         try {
-            await db.runAsync(`INSERT OR IGNORE INTO platos (id_restaurante, id_categoria, nombre, descripcion, precio, imagen_url, modelo_3d_url) VALUES (?, ?, ?, ?, ?, ?, ?)`, [
-                plato.id_restaurante,
-                plato.id_categoria,
-                plato.nombre,
-                plato.descripcion,
-                plato.precio,
-                plato.imagen_url,
-                plato.modelo_3d_url
-            ])
+            await db.runAsync(
+                `INSERT OR IGNORE INTO platos (id_restaurante, id_categoria, nombre, descripcion, precio, imagen_url) VALUES (?, ?, ?, ?, ?, ?)`,
+                [
+                    plato.id_restaurante,
+                    plato.id_categoria,
+                    plato.nombre,
+                    plato.descripcion,
+                    plato.precio,
+                    plato.imagen_url
+                ]
+            );
         } catch (error) {
+            console.log('Error al registrar plato:', error); // ✅ catch ya no queda vacío
+        }
+    }
+    const actualizarRestaurante = async (
+        idRestaurante: number,
+        campo: CampoRestaurante,
+        valor: string
+    ): Promise<{ mensaje: string; state: boolean; restaurante?: RestauranteI }> => {
+        const valorLimpio = valor.trim();
+        if (!valorLimpio) {
+            return { mensaje: 'El campo no puede estar vacío', state: false };
+        }
+        try {
+            if (campo === 'correo') {
+                // Actualizar email en tabla usuarios a través del restaurante
+                const correoExistente = await db.getFirstAsync(
+                    `SELECT u.id_usuario FROM usuarios u
+                     JOIN restaurantes r ON r.id_usuario = u.id_usuario
+                     WHERE u.email = ? AND r.id_restaurante != ?`,
+                    [valorLimpio, idRestaurante]
+                );
+                if (correoExistente) {
+                    return { mensaje: 'Este correo ya está registrado', state: false };
+                }
+                const resultado = await db.runAsync(
+                    `UPDATE usuarios SET email = ?
+                     WHERE id_usuario = (SELECT id_usuario FROM restaurantes WHERE id_restaurante = ?)`,
+                    [valorLimpio, idRestaurante]
+                );
+                if (resultado.changes === 0) {
+                    return { mensaje: 'No se pudo actualizar el correo', state: false };
+                }
+            } else if (campo === 'contraseña') {
+                const resultado = await db.runAsync(
+                    `UPDATE usuarios SET password = ?
+                     WHERE id_usuario = (SELECT id_usuario FROM restaurantes WHERE id_restaurante = ?)`,
+                    [valorLimpio, idRestaurante]
+                );
+                if (resultado.changes === 0) {
+                    return { mensaje: 'No se pudo actualizar la contraseña', state: false };
+                }
+            } else if (campo === 'direccion') {
+                const ubicacion = await geocode(valorLimpio);
+                if (!ubicacion || ubicacion.length === 0) {
+                    return { mensaje: 'No se pudo encontrar la dirección que ingresó', state: false };
+                }
+                const ciudad = ubicacion[0]?.city || '';
+                const latitud = ubicacion[0]?.latitude;
+                const longitud = ubicacion[0]?.longitude;
 
+                const resultado = await db.runAsync(
+                    `UPDATE restaurantes SET direccion = ?, ciudad = ?, latitud = ?, longitud = ? WHERE id_restaurante = ?`,
+                    [valorLimpio, ciudad, latitud, longitud, idRestaurante]
+                );
+                if (resultado.changes === 0) {
+                    return { mensaje: 'No se pudo actualizar la dirección', state: false };
+                }
+            } else {
+                const resultado = await db.runAsync(
+                    `UPDATE restaurantes SET ${campo} = ? WHERE id_restaurante = ?`,
+                    [valorLimpio, idRestaurante]
+                );
+                if (resultado.changes === 0) {
+                    return { mensaje: 'No se pudo actualizar el campo', state: false };
+                }
+            }
+
+            const resta = await db.getFirstAsync<RestauranteI>(
+                `SELECT r.id_restaurante, r.nombre, r.descripcion, r.tipo_comida, r.direccion,
+                        r.ciudad, r.latitud, r.longitud, r.imagen_url, r.telefono, r.horario,
+                        u.email AS correo
+                 FROM restaurantes r
+                 JOIN usuarios u ON u.id_usuario = r.id_usuario
+                 WHERE r.id_restaurante = ?`,
+                [idRestaurante]
+            );
+            return { mensaje: 'Datos actualizados', state: true, restaurante: resta ?? undefined };
+        } catch (error) {
+            console.log('Error al actualizar restaurante:', error);
+            return { mensaje: 'No se pudo actualizar el dato', state: false };
+        }
+    };
+
+    const obtenerCategorias = async ()=>{
+        try {
+            return await db.getAllAsync<Categorias>(`SELECT id_categoria,nombre FROM categoria`) ?? []
+        } catch (error) {
+            
         }
     }
     return {
@@ -550,5 +730,9 @@ export function useBaseDeDatos() {
         actualizarUsuario,
         agregarContactoEmergencia,
         listarContactosEmergencia,
+        registrarRestaurantes,
+        registrarPlato,
+        obtenerCategorias,
+        actualizarRestaurante
     };
 }

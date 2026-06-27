@@ -17,8 +17,7 @@ import { Spacing } from '@/constants/spacing';
 import { Typography } from '@/constants/typography';
 import GradientButton from '@/components/GradientButton';
 
-import {Restaurant} from "../../hooks/useRestaurants";
-import { useBaseDeDatos,Usuarios } from "../../hooks/dataBase";
+import { RestauranteI, useBaseDeDatos,Usuarios } from "../../hooks/dataBase";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -36,25 +35,25 @@ export default function RestaurantDetailScreen() {
     estaEnFavoritos,
     obtenerUsuarioCorreo,
   } = useBaseDeDatos();
-  const [restaurante, setRestaurante] = useState<Restaurant[]>([]);
+  const [restaurante, setRestaurante] = useState<RestauranteI[] | []>([]);
   const [esFavorito, setEsFavorito] = useState(false);
 
   useEffect(() => {
     const iniciarBD = async () => {
       if (!isReady || !db) return;
-      const result = await db.getAllAsync<Restaurant>(`
+      const result = await db.getAllAsync<RestauranteI>(`
     SELECT 
-      id_restaurante  AS id,
-      nombre          AS name,
-      descripcion     AS description,
-      tipo_comida     AS cuisine,
-      direccion       AS address,
+      id_restaurante  ,
+      nombre          ,
+      descripcion     ,
+      tipo_comida     ,
+      direccion       ,
       ciudad,
-      latitud         AS latitude,
-      longitud        AS longitude,
-      imagen_url      AS image,
-      telefono        AS phone,
-      horario         AS openingHours,
+      latitud         ,
+      longitud        ,
+      imagen_url      ,
+      telefono        ,
+      horario         ,
       fuente
     FROM restaurantes WHERE id_restaurante = ?
   `, [id]); 
@@ -110,7 +109,7 @@ export default function RestaurantDetailScreen() {
         {/* Imagen de cabecera */}
         <View style={styles.headerImage}>
           <Image
-            source={require('@/assets/images/restaurant_exterior.png')}
+            source={{ uri: restaurante[0]?.imagen_url }}
             style={styles.coverImage}
           />
           {/* Overlay gradiente */}
@@ -143,8 +142,8 @@ export default function RestaurantDetailScreen() {
           {/* Nombre y rating */}
           <View style={styles.nameRow}>
             <View style={styles.nameContainer}>
-              <Text style={styles.restaurantName}>{restaurante[0]?.name}</Text>
-              <Text style={styles.cuisine}>{restaurante[0]?.cuisine ?? ''}</Text>
+              <Text style={styles.restaurantName}>{restaurante[0]?.nombre}</Text>
+              <Text style={styles.cuisine}>{restaurante[0]?.tipo_comida ?? ''}</Text>
             </View>
             <View style={styles.ratingBadge}>
               <Ionicons name="star" size={16} color="#FFB800" />
@@ -180,7 +179,7 @@ export default function RestaurantDetailScreen() {
               </View>
               <View>
                 <Text style={styles.statValue}>Abierto</Text>
-                <Text style={styles.statLabel}>{restaurante[0]?.openingHours}</Text>
+                <Text style={styles.statLabel}>{restaurante[0]?.horario}</Text>
               </View>
             </View>
           </View>
@@ -189,9 +188,7 @@ export default function RestaurantDetailScreen() {
           <View style={styles.descSection}>
             <Text style={styles.sectionTitle}>Sobre nosotros</Text>
             <Text style={styles.description}>
-              Restaurante de parrilla y cocina latina con los mejores cortes de carne y sabores
-              auténticos. Disfruta de una experiencia gastronómica única con ingredientes frescos
-              y técnicas tradicionales.
+              {restaurante[0]?.descripcion}
             </Text>
           </View>
 

@@ -15,6 +15,7 @@ import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useBaseDeDatos, Platos } from "@/hooks/dataBase";
+import { ImagenAnimada } from "@/components/ImagenAnimada";
 
 
 export default function MenuScreen() {
@@ -114,7 +115,7 @@ export default function MenuScreen() {
             style={styles.menuCard}
             activeOpacity={0.8}
           >
-            <Image source={require("@/assets/images/food_soup.png")} style={styles.menuImage} />
+            <ImagenAnimada imagenUrl={item.imagen_url} style={styles.menuImage} />
             <View style={styles.menuInfo}>
               <Text style={styles.menuName}>{item.nombre}</Text>
               <Text style={styles.menuDescription} numberOfLines={2}>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,35 +8,48 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '@/constants/colors';
-import { Spacing } from '@/constants/spacing';
-import { Typography } from '@/constants/typography';
-import Logo from '@/components/Logo';
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors } from "@/constants/colors";
+import { Spacing } from "@/constants/spacing";
+import { Typography } from "@/constants/typography";
+import Logo from "@/components/Logo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useBaseDeDatos } from "@/hooks/dataBase";
 
 export default function RestaurantLoginScreen() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [contraseña, setContraseña] = useState('');
-  const [nombreRestaurante, setNombreRestaurante] = useState('');
+  const [contraseña, setContraseña] = useState("");
+  const [correo, setCorreo] = useState("");
+  const { db, isReady, iniciarSesion } = useBaseDeDatos();
+  const localSesion = 'sesion';
+  // Session checked on splash
 
   const loginRestaurante = async () => {
-    if (contraseña.trim() === '' || nombreRestaurante.trim() === '') {
-      alert('Rellene todos los campos');
+    if (!isReady || !db) return;
+
+    if (contraseña.trim() === "" || correo.trim() === "") {
+      alert("Rellene todos los campos");
     } else {
       // TODO: Lógica de inicio de sesión de restaurante
-      router.replace('/(restaurant-tabs)');
+      const login = await iniciarSesion(correo.trim(), contraseña.trim(), 2);
+      if (login) {
+        await AsyncStorage.setItem(localSesion,JSON.stringify(login))
+        router.replace("/(restaurant-tabs)");
+      } else {
+        alert('Verifique sus credenciales')
+      }
+
     }
   };
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -49,7 +62,12 @@ export default function RestaurantLoginScreen() {
             colors={[Colors.primary, Colors.gradientStart]}
             style={styles.headerGradient}
           >
-            <Logo size={70} showText textColor={Colors.textWhite} color={Colors.primary} />
+            <Logo
+              size={70}
+              showText
+              textColor={Colors.textWhite}
+              color={Colors.primary}
+            />
           </LinearGradient>
           {/* Curva decorativa */}
           <View style={styles.curve} />
@@ -60,22 +78,33 @@ export default function RestaurantLoginScreen() {
           <Text style={styles.title}>Login Restaurante</Text>
           <Text style={styles.subtitle}>Ingresa tus datos para continuar</Text>
 
-          {/* Campo Nombre del restaurante */}
+          {/* Campo Email */}
           <View style={styles.inputContainer}>
-            <Ionicons name="storefront-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
+            <Ionicons
+              name="mail-outline"
+              size={20}
+              color={Colors.textLight}
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
-              value={nombreRestaurante}
-              onChangeText={setNombreRestaurante}
-              placeholder="Nombre del restaurante"
+              value={correo}
+              onChangeText={setCorreo}
+              placeholder="Correo electrónico"
               placeholderTextColor={Colors.textLight}
-              autoCapitalize="words"
+              keyboardType="email-address"
+              autoCapitalize="none"
             />
           </View>
 
           {/* Campo Contraseña */}
           <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
+            <Ionicons
+              name="lock-closed-outline"
+              size={20}
+              color={Colors.textLight}
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               value={contraseña}
@@ -86,7 +115,7 @@ export default function RestaurantLoginScreen() {
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
               <Ionicons
-                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                name={showPassword ? "eye-outline" : "eye-off-outline"}
                 size={20}
                 color={Colors.textLight}
               />
@@ -95,11 +124,18 @@ export default function RestaurantLoginScreen() {
 
           {/* ¿Olvidaste tu contraseña? */}
           <TouchableOpacity style={styles.forgotPassword}>
-            <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
+            <Text style={styles.forgotPasswordText}>
+              ¿Olvidaste tu contraseña?
+            </Text>
           </TouchableOpacity>
 
           {/* Botón Iniciar Sesión */}
-          <TouchableOpacity onPress={async () => { await loginRestaurante() }} activeOpacity={0.8}>
+          <TouchableOpacity
+            onPress={async () => {
+              await loginRestaurante();
+            }}
+            activeOpacity={0.8}
+          >
             <LinearGradient
               colors={[Colors.gradientStart, Colors.gradientEnd]}
               start={{ x: 0, y: 0 }}
@@ -117,7 +153,9 @@ export default function RestaurantLoginScreen() {
           {/* Registro */}
           <View style={styles.registerRow}>
             <Text style={styles.registerText}>¿No tienes cuenta? </Text>
-            <TouchableOpacity onPress={() => router.push('/restaurant-register')}>
+            <TouchableOpacity
+              onPress={() => router.push("/restaurant-register")}
+            >
               <Text style={styles.registerLink}>Regístrate</Text>
             </TouchableOpacity>
           </View>
@@ -136,16 +174,16 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    position: 'relative',
+    position: "relative",
   },
   headerGradient: {
     paddingTop: 60,
     paddingBottom: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   curve: {
-    position: 'absolute',
+    position: "absolute",
     bottom: -1,
     left: 0,
     right: 0,
@@ -171,8 +209,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: Colors.backgroundGray,
     borderRadius: Spacing.borderRadius.lg,
     paddingHorizontal: Spacing.base,
@@ -188,7 +226,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   forgotPassword: {
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
     marginBottom: Spacing.xl,
   },
   forgotPasswordText: {
@@ -199,8 +237,8 @@ const styles = StyleSheet.create({
   loginButton: {
     height: Spacing.buttonHeight,
     borderRadius: Spacing.borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -214,19 +252,19 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   separator: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: Spacing.xl,
   },
   separatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   registerRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     paddingBottom: Spacing.xxl,
   },
   registerText: {

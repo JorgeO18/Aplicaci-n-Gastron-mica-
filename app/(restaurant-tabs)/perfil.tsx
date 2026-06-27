@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/colors';
 import { Spacing } from '@/constants/spacing';
@@ -7,18 +7,13 @@ import { Typography } from '@/constants/typography';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useBaseDeDatos, RestauranteI, CampoRestaurante } from "../../hooks/dataBase";
 
 export default function PerfilScreen() {
   const router = useRouter();
-
-  // Mock de datos del restaurante (eventualmente vendrían de la BD)
-  const [restaurant, setRestaurant] = useState({
-    nombre: "Mi Restaurante",
-    tipo_comida: "Categoría",
-    ubicacion: "Dirección",
-    telefono: "Teléfono",
-    horario: "Horarios"
-  });
+  const { actualizarRestaurante } = useBaseDeDatos();
+  const localSesion = "sesion";
+  const [restaurant, setRestaurant] = useState< RestauranteI | null>(null);
 
   const [campoEditando, setCampoEditando] = useState<string | null>(null);
   const [valorEditando, setValorEditando] = useState('');
@@ -27,8 +22,13 @@ export default function PerfilScreen() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const data = await AsyncStorage.getItem('@sesion_restaurante');
-      if (data) setRestaurant(JSON.parse(data));
+      const isLogin = await AsyncStorage.getItem(localSesion);
+      if (!isLogin) return;
+      const sesion: RestauranteI = JSON.parse(isLogin);
+      if (sesion) {
+        setRestaurant(sesion)
+      }
+      
       const planData = await AsyncStorage.getItem('@plan_restaurante');
       if (planData) setPlanActual(JSON.parse(planData).nombre || null);
     };
@@ -36,8 +36,8 @@ export default function PerfilScreen() {
   }, []);
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('@sesion_restaurante');
-    router.replace('/restaurant-login');
+    await AsyncStorage.removeItem(localSesion);
+    router.replace('../role-selection');
   };
 
   const abrirEdicion = (campo: string) => {
@@ -52,10 +52,19 @@ export default function PerfilScreen() {
   };
 
   const guardarCampo = async () => {
-    if (campoEditando) {
-      const updatedRest = { ...restaurant, [campoEditando]: valorEditando };
-      setRestaurant(updatedRest);
-      await AsyncStorage.setItem('@sesion_restaurante', JSON.stringify(updatedRest));
+    if (!campoEditando || !restaurant) {
+      cerrarEdicion();
+      return;
+    }
+    const { mensaje, state, restaurante } = await actualizarRestaurante(
+      restaurant.id_restaurante,
+      campoEditando as CampoRestaurante,
+      valorEditando
+    );
+    Alert.alert(state ? 'Éxito' : 'Error', mensaje);
+    if (state && restaurante) {
+      setRestaurant(restaurante);
+      await AsyncStorage.setItem(localSesion, JSON.stringify(restaurante));
     }
     cerrarEdicion();
   };
@@ -80,8 +89,8 @@ export default function PerfilScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.restaurantName}>{restaurant.nombre}</Text>
-          <Text style={styles.restaurantType}>{restaurant.tipo_comida}</Text>
+          <Text style={styles.restaurantName}>{restaurant?.nombre}</Text>
+          <Text style={styles.restaurantType}>{restaurant?.tipo_comida}</Text>
         </LinearGradient>
 
         {/* Curva superpuesta */}
@@ -90,35 +99,47 @@ export default function PerfilScreen() {
         {/* Información del restaurante */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información del Local</Text>
+
           <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('nombre')}>
             <View style={styles.fieldIcon}>
               <Ionicons name="restaurant-outline" size={20} color={Colors.primary} />
             </View>
             <View style={styles.fieldContent}>
               <Text style={styles.fieldLabel}>Nombre del restaurante</Text>
-              <Text style={styles.fieldValue}>{restaurant.nombre}</Text>
+              <Text style={styles.fieldValue}>{restaurant?.nombre}</Text>
+            </View>
+            <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('descripcion')}>
+            <View style={styles.fieldIcon}>
+              <Ionicons name="document-text-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.fieldContent}>
+              <Text style={styles.fieldLabel}>Descripción</Text>
+              <Text style={styles.fieldValue} numberOfLines={2}>{restaurant?.descripcion || 'Sin descripción'}</Text>
             </View>
             <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('tipo_comida')}>
             <View style={styles.fieldIcon}>
-              <Ionicons name="restaurant-outline" size={20} color={Colors.primary} />
+              <Ionicons name="fast-food-outline" size={20} color={Colors.primary} />
             </View>
             <View style={styles.fieldContent}>
-              <Text style={styles.fieldLabel}>Categoría</Text>
-              <Text style={styles.fieldValue}>{restaurant.tipo_comida}</Text>
+              <Text style={styles.fieldLabel}>Tipo de comida</Text>
+              <Text style={styles.fieldValue}>{restaurant?.tipo_comida}</Text>
             </View>
             <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('ubicacion')}>
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('direccion')}>
             <View style={styles.fieldIcon}>
               <Ionicons name="location-outline" size={20} color={Colors.primary} />
             </View>
             <View style={styles.fieldContent}>
-              <Text style={styles.fieldLabel}>Ubicación</Text>
-              <Text style={styles.fieldValue}>{restaurant.ubicacion}</Text>
+              <Text style={styles.fieldLabel}>Dirección</Text>
+              <Text style={styles.fieldValue}>{restaurant?.direccion}</Text>
             </View>
             <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
           </TouchableOpacity>
@@ -129,23 +150,34 @@ export default function PerfilScreen() {
             </View>
             <View style={styles.fieldContent}>
               <Text style={styles.fieldLabel}>Teléfono de contacto</Text>
-              <Text style={styles.fieldValue}>{restaurant.telefono}</Text>
+              <Text style={styles.fieldValue}>{restaurant?.telefono}</Text>
             </View>
             <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('horario')}>
             <View style={styles.fieldIcon}>
               <Ionicons name="time-outline" size={20} color={Colors.primary} />
             </View>
             <View style={styles.fieldContent}>
               <Text style={styles.fieldLabel}>Horario de atención</Text>
-              <Text style={styles.fieldValue}>{restaurant.horario}</Text>
+              <Text style={styles.fieldValue}>{restaurant?.horario}</Text>
             </View>
             <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('password')}>
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('correo')}>
+            <View style={styles.fieldIcon}>
+              <Ionicons name="mail-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.fieldContent}>
+              <Text style={styles.fieldLabel}>Correo electrónico</Text>
+              <Text style={styles.fieldValue}>{restaurant?.correo || 'No disponible'}</Text>
+            </View>
+            <Ionicons name="pencil-outline" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => abrirEdicion('contraseña')}>
             <View style={styles.fieldIcon}>
               <Ionicons name="lock-closed-outline" size={20} color={Colors.primary} />
             </View>
@@ -195,10 +227,11 @@ export default function PerfilScreen() {
                 onChangeText={setValorEditando}
                 placeholder="Ingresa el nuevo valor"
                 placeholderTextColor={Colors.textLight}
-                autoCapitalize={campoEditando === 'password' ? "none" : "sentences"}
-                secureTextEntry={campoEditando === 'password' && !showPasswordInModal}
+                autoCapitalize={campoEditando === 'contraseña' || campoEditando === 'correo' ? "none" : "sentences"}
+                keyboardType={campoEditando === 'correo' ? 'email-address' : 'default'}
+                secureTextEntry={campoEditando === 'contraseña' && !showPasswordInModal}
               />
-              {campoEditando === 'password' && (
+              {campoEditando === 'contraseña' && (
                 <TouchableOpacity onPress={() => setShowPasswordInModal(!showPasswordInModal)} style={{ paddingHorizontal: 10 }}>
                   <Ionicons 
                     name={showPasswordInModal ? 'eye-outline' : 'eye-off-outline'} 

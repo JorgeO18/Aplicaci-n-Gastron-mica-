@@ -180,8 +180,10 @@ export default function ProfileScreen() {
   const cerrarSesion = async () => {
     try {
       await AsyncStorage.removeItem("sesion");
-      router.replace("../login");
-    } catch (error) {}
+      router.replace("../role-selection");
+    } catch (error) {
+      console.log(error)
+    }
   };
 
   return (
