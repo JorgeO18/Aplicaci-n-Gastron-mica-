@@ -12,7 +12,7 @@ export default function App() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🍽️ Tu ruta la restaurante</Text>
+        <Text style={styles.headerTitle}>🍽️ Tu ruta al restaurante</Text>
       </View>
       
 

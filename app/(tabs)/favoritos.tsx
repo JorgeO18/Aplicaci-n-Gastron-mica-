@@ -62,7 +62,7 @@ export default function FavouritesScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Favoritos</Text>
-        <Text style={styles.subtitle}>{favoritos.length} platos guardados</Text>
+        <Text style={styles.subtitle}>{favoritos.length} restaurantes guardados</Text>
       </View>
 
       {/* Grid de favoritos */}

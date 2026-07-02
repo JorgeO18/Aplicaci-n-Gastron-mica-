@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
+  
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -60,7 +60,7 @@ export default function MenuScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>Menú</Text>
-          <Text style={styles.subtitle}>Sabor & Fuego</Text>
+          <Text style={styles.subtitle}></Text>
         </View>
         <TouchableOpacity style={styles.backButton}>
           <Ionicons

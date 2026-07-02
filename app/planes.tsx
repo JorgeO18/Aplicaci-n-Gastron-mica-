@@ -11,7 +11,7 @@ const PLANES = [
   {
     id: 'basico',
     nombre: 'Básico',
-    precio: '$9.99',
+    precio: '$50,000.00',
     features: ['Perfil del restaurante', 'Sube hasta 10 platos', 'Estadísticas básicas'],
     popular: false,
     gradientColores: null,
@@ -19,7 +19,7 @@ const PLANES = [
   {
     id: 'pro',
     nombre: 'Pro',
-    precio: '$19.99',
+    precio: '$100,000.00',
     features: ['Perfil destacado', 'Hasta 30 platos', 'Estadísticas avanzadas', 'Soporte prioritario'],
     popular: true,
     gradientColores: [Colors.gradientStart, Colors.gradientEnd] as [string, string],
@@ -27,7 +27,7 @@ const PLANES = [
   {
     id: 'premium',
     nombre: 'Premium',
-    precio: '$29.99',
+    precio: '$150,000.00',
     features: ['Todo lo del Plan Pro', 'Campañas promocionales', 'Publicación destacada', 'Gerente de cuenta'],
     popular: false,
     gradientColores: null,
@@ -71,7 +71,7 @@ export default function PlanesScreen() {
                   </View>
                   <View style={styles.planPriceRow}>
                     <Text style={[styles.planPrice, isGradient && styles.textWhite]}>{plan.precio}</Text>
-                    <Text style={[styles.planPeriod, isGradient && { color: 'rgba(255,255,255,0.7)' }]}>/ mes</Text>
+                    <Text style={[styles.planPeriod, isGradient && { color: 'rgba(255,255,255,0.7)' }]}>cop/ mes</Text>
                   </View>
                 </View>
               </View>
