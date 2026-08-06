@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jorge-ortega.aplicaciongastronomica"
     },
     "android": {
       "adaptiveIcon": {
@@ -56,7 +57,8 @@
         {
           "cameraPermission": "Esta app necesita la cámara para el modo AR"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
