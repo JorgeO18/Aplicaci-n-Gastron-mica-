@@ -84,20 +84,31 @@ export interface RestauranteI {
     latitud: number;
     longitud: number;
     imagen_url: string;
+    portada_url?: string;
     telefono: string;
     horario: string;
     correo?: string;
     contraseña?: string;
 }
 
-export type CampoRestaurante = 'nombre' | 'descripcion' | 'tipo_comida' | 'direccion' | 'telefono' | 'horario' | 'correo' | 'contraseña';
+export type CampoRestaurante = 'nombre' | 'descripcion' | 'tipo_comida' | 'direccion' | 'telefono' | 'horario' | 'correo' | 'contraseña' | 'imagen_url'|'portada_url';
 export interface Categorias {
     id_categoria: number,
     nombre : string
 }
 
+export interface Resena {
+    id_resena: number;
+    id_usuario: number;
+    id_restaurante: number;
+    puntuacion: number;
+    comentario: string;
+    fecha_creacion: string;
+    nombre_usuario?: string;
+}
 
-// ✅ Esta función se pasa a SQLiteProvider y solo corre UNA vez
+
+//  Esta función se pasa a SQLiteProvider y solo corre UNA vez
 export async function inicializarDB(database: SQLite.SQLiteDatabase) {
     await database.execAsync(`
         PRAGMA journal_mode = WAL;
@@ -210,11 +221,29 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
             fecha_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
         );
+        CREATE TABLE IF NOT EXISTS resenas (
+            id_resena INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_usuario INTEGER NOT NULL,
+            id_restaurante INTEGER NOT NULL,
+            puntuacion INTEGER NOT NULL CHECK(puntuacion >= 1 AND puntuacion <= 5),
+            comentario TEXT,
+            fecha_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+            FOREIGN KEY (id_restaurante) REFERENCES restaurantes(id_restaurante) ON DELETE CASCADE
+        );
         CREATE INDEX IF NOT EXISTS idx_platos_restaurante ON platos(id_restaurante);
         CREATE INDEX IF NOT EXISTS idx_favoritos_usuario ON favoritos(id_usuario);
         CREATE INDEX IF NOT EXISTS idx_historial_usuario ON historial_busquedas(id_usuario);
         CREATE INDEX IF NOT EXISTS idx_contactos_usuario ON contactos_emergencia(id_usuario);
+        CREATE INDEX IF NOT EXISTS idx_resenas_restaurante ON resenas(id_restaurante);
     `);
+
+    try {
+    await database.execAsync(`ALTER TABLE restaurantes ADD COLUMN portada_url TEXT`); // <--- AGREGA ESTE TRY/CATCH PARA PORTADA
+} catch {
+    // La columna ya existe
+}
+
 
     try {
         await database.execAsync(`ALTER TABLE usuarios ADD COLUMN ubicacion TEXT`);
@@ -222,14 +251,30 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
         // La columna ya existe en instalaciones previas
     }
 
-    const tiposUsuario = ['cliente', 'restaurante', 'sistema'];
-    for (const tipo of tiposUsuario) {
-        await database.runAsync(
-            `INSERT OR IGNORE INTO tipo_usuario (tipo_usuario) VALUES (?)`,
-            [tipo]
-        );
+    const userCount = await database.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM tipo_usuario');
+    if (userCount?.count === 0) {
+        const tiposUsuario = ['cliente', 'restaurante', 'sistema'];
+        for (const tipo of tiposUsuario) {
+            await database.runAsync(
+                `INSERT INTO tipo_usuario (tipo_usuario) VALUES (?)`,
+                [tipo]
+            );
+        }
     }
 
+    const catCount = await database.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM categoria');
+    if (catCount?.count === 0) {
+        const categorias = [
+            ['regional', 'Plato tradicional de la region'],
+            ['local', 'Plato tradicional de la ciudad'],
+        ];
+        for (const cat of categorias) {
+            await database.runAsync(
+                `INSERT INTO categoria (nombre, descripcion) VALUES (?, ?)`,
+                cat
+            );
+        }
+    }
 }
 
 // ✅ Hook que reemplaza useBaseDeDatos — usa el contexto del provider
@@ -246,18 +291,8 @@ export function useBaseDeDatos() {
             [2, 'Ajiaco santafereño', 'Sopa bogotana preparada con pollo y diferentes papas', 18000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
             [1, 'Tamal valluno', 'Masa de maíz rellena de carne y verduras envuelta en hoja', 15000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
         ];
-        const categorias = [
-            ['regional', 'Plato tradicional de la region'],
-            ['local', 'Plato tradicional de la ciudad'],
-        ];
 
         try {
-            for (const categoria of categorias) {
-                await db.runAsync(
-                    `INSERT OR IGNORE INTO categoria (nombre, descripcion) VALUES (?, ?)`,
-                    categoria
-                );
-            }
             for (const r of rest) {
                 for (const p of platos) {
                     await db.runAsync(
@@ -321,7 +356,7 @@ export function useBaseDeDatos() {
                 // JOIN explícito con tabla "restaurantes"
                 return await db.getFirstAsync(
                     `SELECT r.id_restaurante, r.nombre, r.descripcion, r.tipo_comida, r.direccion,
-                            r.ciudad, r.latitud, r.longitud, r.imagen_url, r.telefono, r.horario
+                            r.ciudad, r.latitud, r.longitud, r.imagen_url, r.portada_url , r.telefono, r.horario
                      FROM usuarios u
                      JOIN restaurantes r ON r.id_usuario = u.id_usuario
                      WHERE u.email = ? AND u.password = ?`,
@@ -595,7 +630,7 @@ export function useBaseDeDatos() {
 
             const resta = await db.getFirstAsync(
                 `SELECT r.id_restaurante, r.nombre, r.descripcion, r.tipo_comida, r.direccion,
-                            r.ciudad, r.latitud, r.longitud, r.imagen_url, r.telefono, r.horario
+                            r.ciudad, r.latitud, r.longitud, r.imagen_url, r.portada_url , r.telefono, r.horario
                      FROM usuarios u
                      JOIN restaurantes r ON r.id_usuario = u.id_usuario
                      WHERE r.id_restaurante = ?`,
@@ -692,7 +727,7 @@ export function useBaseDeDatos() {
 
             const resta = await db.getFirstAsync<RestauranteI>(
                 `SELECT r.id_restaurante, r.nombre, r.descripcion, r.tipo_comida, r.direccion,
-                        r.ciudad, r.latitud, r.longitud, r.imagen_url, r.telefono, r.horario,
+                        r.ciudad, r.latitud, r.longitud, r.imagen_url, r.portada_url , r.telefono, r.horario,
                         u.email AS correo
                  FROM restaurantes r
                  JOIN usuarios u ON u.id_usuario = r.id_usuario
@@ -713,6 +748,62 @@ export function useBaseDeDatos() {
             
         }
     }
+
+    const agregarResena = async (
+        idUsuario: number,
+        idRestaurante: number,
+        puntuacion: number,
+        comentario: string
+    ): Promise<{ mensaje: string; state: boolean }> => {
+        if (puntuacion < 1 || puntuacion > 5) {
+            return { mensaje: 'La puntuación debe ser entre 1 y 5', state: false };
+        }
+        if (!comentario.trim()) {
+            return { mensaje: 'El comentario no puede estar vacío', state: false };
+        }
+        try {
+            await db.runAsync(
+                `INSERT INTO resenas (id_usuario, id_restaurante, puntuacion, comentario) VALUES (?, ?, ?, ?)`,
+                [idUsuario, idRestaurante, puntuacion, comentario.trim()]
+            );
+            return { mensaje: 'Reseña guardada', state: true };
+        } catch (error) {
+            console.log('Error al agregar reseña:', error);
+            return { mensaje: 'No se pudo guardar la reseña', state: false };
+        }
+    };
+
+    const listarResenasRestaurante = async (idRestaurante: number): Promise<Resena[]> => {
+        try {
+            return await db.getAllAsync<Resena>(
+                `SELECT r.id_resena, r.id_usuario, r.id_restaurante, r.puntuacion,
+                        r.comentario, r.fecha_creacion, c.nombre AS nombre_usuario
+                 FROM resenas r
+                 LEFT JOIN clientes c ON c.id_usuario = r.id_usuario
+                 WHERE r.id_restaurante = ?
+                 ORDER BY r.fecha_creacion DESC`,
+                [idRestaurante]
+            ) ?? [];
+        } catch (error) {
+            console.log('Error al listar reseñas:', error);
+            return [];
+        }
+    };
+
+    const obtenerPromedioRestaurante = async (idRestaurante: number): Promise<{ promedio: number; total: number }> => {
+        try {
+            const result = await db.getFirstAsync<{ promedio: number; total: number }>(
+                `SELECT AVG(puntuacion) as promedio, COUNT(*) as total
+                 FROM resenas WHERE id_restaurante = ?`,
+                [idRestaurante]
+            );
+            return { promedio: result?.promedio ?? 0, total: result?.total ?? 0 };
+        } catch (error) {
+            console.log('Error al obtener promedio:', error);
+            return { promedio: 0, total: 0 };
+        }
+    };
+
     return {
         db,
         isReady: true, // ✅ SQLiteProvider garantiza que ya está lista
@@ -732,6 +823,9 @@ export function useBaseDeDatos() {
         registrarRestaurantes,
         registrarPlato,
         obtenerCategorias,
-        actualizarRestaurante
+        actualizarRestaurante,
+        agregarResena,
+        listarResenasRestaurante,
+        obtenerPromedioRestaurante,
     };
 }

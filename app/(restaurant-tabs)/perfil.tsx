@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '@/constants/colors';
 import { Spacing } from '@/constants/spacing';
 import { Typography } from '@/constants/typography';
@@ -69,29 +70,122 @@ export default function PerfilScreen() {
     cerrarEdicion();
   };
 
+  const handleSubirFotoPerfil = async () => {
+    if (!restaurant) return;
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permisos necesarios", "Se necesita acceso a la galería para cambiar la foto.");
+      return;
+    }
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        const { mensaje, state, restaurante } = await actualizarRestaurante(
+          restaurant.id_restaurante,
+          'imagen_url',
+          imageUri
+        );
+        Alert.alert(state ? 'Éxito' : 'Error', state ? 'Foto actualizada correctamente' : mensaje);
+        if (state && restaurante) {
+          setRestaurant(restaurante);
+          await AsyncStorage.setItem(localSesion, JSON.stringify(restaurante));
+        }
+      }
+    } catch (e) {
+      console.log('Error al subir foto de perfil:', e);
+      Alert.alert("Error", "No se pudo subir la foto");
+    }
+  };
+
+// funcio para la foto de portada ------------------------------------------------------
+const handleSubirFotoPortada = async () => {
+  if (!restaurant) return;
+  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!permission.granted) {
+    Alert.alert("Permisos necesarios", "Se necesita acceso a la galería para cambiar la foto.");
+    return;
+  }
+  try {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'], // Usamos solo 'images' 
+      allowsEditing: true, // Si usas expo-image-picker 14+, 'mediaTypes' ha cambiado, pero si está funcionando para el perfil, funcionará aquí
+      aspect: [16, 9], // Aspecto panorámico para banners
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const imageUri = result.assets[0].uri;
+      const { mensaje, state, restaurante } = await actualizarRestaurante(
+        restaurant.id_restaurante,
+        'portada_url',
+        imageUri
+      );
+      Alert.alert(state ? 'Éxito' : 'Error', state ? 'Portada actualizada correctamente' : mensaje);
+      if (state && restaurante) {
+        setRestaurant(restaurante);
+        await AsyncStorage.setItem(localSesion, JSON.stringify(restaurante));
+      }
+    }
+  } catch (e) {
+    console.log('Error al subir foto de portada:', e);
+    Alert.alert("Error", "No se pudo subir la foto de portada");
+  }
+};
+
+
+
+
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header con gradiente (estilo TaseGo) */}
-        <LinearGradient
-          colors={[Colors.primary, Colors.gradientStart]}
-          style={styles.headerGradient}
-        >
-          <Text style={styles.headerTitle}>Perfil del Restaurante</Text>
+        {/* Header con portada y gradiente */}
+        <View style={styles.headerContainer}>
+          {restaurant?.portada_url ? (
+            <Image source={{ uri: restaurant.portada_url }} style={styles.coverPhoto} resizeMode="cover" />
+          ) : (
+            <LinearGradient
+              colors={[Colors.primary, Colors.gradientStart]}
+              style={styles.coverPhoto}
+            />
+          )}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.7)']}
+            style={StyleSheet.absoluteFillObject}
+          />
+          
+          <TouchableOpacity style={styles.editCoverButton} onPress={handleSubirFotoPortada}>
+            <Ionicons name="camera" size={16} color={Colors.textWhite} />
+            <Text style={styles.editCoverText}>Editar portada</Text>
+          </TouchableOpacity>
 
-          {/* Avatar principal */}
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Ionicons name="storefront" size={48} color={Colors.textWhite} />
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Perfil del Restaurante</Text>
+
+            {/* Avatar principal */}
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatar}>
+                {restaurant?.imagen_url ? (
+                  <Image source={{ uri: restaurant.imagen_url }} style={styles.avatarImage} />
+                ) : (
+                  <Ionicons name="storefront" size={48} color={Colors.textWhite} />
+                )}
+              </View>
+              <TouchableOpacity style={styles.editAvatar} onPress={handleSubirFotoPerfil}>
+                <Ionicons name="camera" size={14} color={Colors.textWhite} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.editAvatar}>
-              <Ionicons name="camera" size={14} color={Colors.textWhite} />
-            </TouchableOpacity>
-          </View>
 
-          <Text style={styles.restaurantName}>{restaurant?.nombre}</Text>
-          <Text style={styles.restaurantType}>{restaurant?.tipo_comida}</Text>
-        </LinearGradient>
+            <Text style={styles.restaurantName}>{restaurant?.nombre}</Text>
+            <Text style={styles.restaurantType}>{restaurant?.tipo_comida}</Text>
+          </View>
+        </View>
 
         {/* Curva superpuesta */}
         <View style={styles.curve} />
@@ -262,10 +356,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  headerGradient: {
+  headerContainer: {
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  coverPhoto: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  headerContent: {
     paddingTop: 50,
     paddingBottom: 40,
     alignItems: 'center',
+  },
+  editCoverButton: {
+    position: 'absolute',
+    top: 50,
+    right: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    zIndex: 10,
+  },
+  editCoverText: {
+    color: Colors.textWhite,
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.medium,
+    marginLeft: 6,
   },
   headerTitle: {
     fontSize: Typography.sizes.lg,
@@ -286,6 +411,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.4)',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   editAvatar: {
     position: 'absolute',

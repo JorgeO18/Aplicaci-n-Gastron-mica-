@@ -4,7 +4,13 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1cccf2dc-a82e-4429-95b9-69e0e6959bdd" name="Changes" comment="" />
+    <list default="true" id="1cccf2dc-a82e-4429-95b9-69e0e6959bdd" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/app/(restaurant-tabs)/perfil.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(restaurant-tabs)/perfil.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/restaurant/[id].tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/restaurant/[id].tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/RestaurantCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/RestaurantCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hooks/dataBase.ts" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/dataBase.ts" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -38,7 +44,7 @@
     "com.google.services.firebase.aqiPopupShown": "true",
     "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/aplicacion-gastronomica"
+    "last_opened_file_path": "C:/Aplicacion-gastronomica"
   }
 }]]></component>
   <component name="TaskManager">

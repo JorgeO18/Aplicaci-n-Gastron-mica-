@@ -9,7 +9,7 @@ import { Typography } from '../constants/typography';
 interface RestaurantCardProps {
   name: string;
   image: ImageSourcePropType;
-  // rating: number;
+  rating?: number;
   distance: string;
   // deliveryTime: string;
   cuisine: string;
@@ -21,7 +21,7 @@ interface RestaurantCardProps {
 export default function RestaurantCard({
   name,
   image,
-  // rating,
+  rating,
   distance,
   // deliveryTime,
   cuisine,
@@ -41,11 +41,13 @@ export default function RestaurantCard({
               <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
               <Text style={styles.statText}>{distance}</Text>
             </View>
+            {rating !== undefined && (
+              <View style={styles.stat}>
+                <Ionicons name="star" size={14} color="#FFB800" />
+                <Text style={styles.statText}>{rating.toFixed(1)}</Text>
+              </View>
+            )}
             {/* <View style={styles.stat}>
-              <Ionicons name="star" size={14} color="#FFB800" />
-              <Text style={styles.statText}>{rating}</Text>
-            </View>
-            <View style={styles.stat}>
               <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
               <Text style={styles.statText}>{deliveryTime}</Text> 
             </View>*/}
@@ -72,20 +74,24 @@ export default function RestaurantCard({
         <Text style={styles.name} numberOfLines={1}>{name}</Text>
         <Text style={styles.cuisine}>{cuisine}</Text>
         <View style={styles.statsRow}>
+          {rating !== undefined && (
+            <>
+              <View style={styles.stat}>
+                <Ionicons name="star" size={14} color="#FFB800" />
+                <Text style={styles.statText}>{rating.toFixed(1)}</Text>
+              </View>
+              <View style={styles.statDivider} />
+            </>
+          )}
           {/* <View style={styles.stat}>
-            <Ionicons name="star" size={14} color="#FFB800" />
-            <Text style={styles.statText}>{rating}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
             <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
             <Text style={styles.statText}>{deliveryTime}</Text>
           </View>
-          <View style={styles.statDivider} />
+          <View style={styles.statDivider} /> */}
           <View style={styles.stat}>
             <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
             <Text style={styles.statText}>{distance}</Text>
-          </View> */}
+          </View>
         </View>
       </View>
     </TouchableOpacity>

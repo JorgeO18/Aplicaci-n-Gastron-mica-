@@ -83,7 +83,7 @@ const popularRestaurants = [
 export default function HomeScreen() {
   const router = useRouter();
   //Manejo de datos y api
-  const { db, isReady, insertarDemos } = useBaseDeDatos();
+  const { db, isReady, insertarDemos, obtenerPromedioRestaurante } = useBaseDeDatos();
   const localSesion = "sesion";
   const [user, setUser] = useState<Usuarios | null>(null);
   const { location, error: errorlo, loading: loadingLo } = useLocation();
@@ -93,6 +93,7 @@ export default function HomeScreen() {
     fetchRestaurants,
   } = useRestaurants();
   const [restaurante, setRestaurante] = useState<RestauranteI[]>([]); //Donde se guardan los restaurantes para visualizar datos
+  const [promedios, setPromedios] = useState<Record<number, number>>({});
   const [busquedaCocina, setBusquedaCocina] = useState("");
 
   const restaurantesFiltrados = useMemo(
@@ -254,12 +255,37 @@ export default function HomeScreen() {
     FROM restaurantes
   `);
 
+    const promediosLoaded: Record<number, number> = {};
+    for (const r of result) {
+      if (r.id_restaurante) {
+        const p = await obtenerPromedioRestaurante(Number(r.id_restaurante));
+        if (p.total > 0) promediosLoaded[r.id_restaurante] = p.promedio;
+      }
+    }
+    setPromedios(promediosLoaded);
+
     await insertarDemos(result);
 
     console.log(`🍽️ Total en BD después de guardar: ${result.length}`);
     setRestaurante(result);
   };
   //------------------------------------------------------------
+
+  // Solo para cargar promedios iniciales
+  useEffect(() => {
+    if (!db || restaurante.length === 0) return;
+    const loadAvgs = async () => {
+      const promediosLoaded: Record<number, number> = {};
+      for (const r of restaurante) {
+        if (r.id_restaurante) {
+          const p = await obtenerPromedioRestaurante(Number(r.id_restaurante));
+          if (p.total > 0) promediosLoaded[r.id_restaurante] = p.promedio;
+        }
+      }
+      setPromedios(promediosLoaded);
+    };
+    loadAvgs();
+  }, [restaurante]);
 
   return (
     <View style={styles.container}>
@@ -384,6 +410,7 @@ export default function HomeScreen() {
                 name={restaurant.nombre}
                 image={{ uri: restaurant.imagen_url }}
                 distance={restaurant.direccion ?? ""}
+                rating={restaurant.id_restaurante ? promedios[restaurant.id_restaurante] : undefined}
                 cuisine={restaurant.tipo_comida ?? ""}
                 variant="horizontal"
                 onPress={() =>
