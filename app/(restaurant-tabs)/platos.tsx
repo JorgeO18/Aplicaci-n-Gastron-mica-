@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/colors';
+ import { Colors } from '@/constants/colors';
 import { Spacing } from '@/constants/spacing';
 import { Typography } from '@/constants/typography';
 import { seleccionarImagen } from '@/hooks/archivos';
@@ -30,6 +30,11 @@ export default function PlatosScreen() {
   const [descripcion, setDescripcion] = useState('');
   const [precio, setPrecio] = useState('');
   const [fotos, setFotos] = useState<string[]>([]);
+  
+  // *** CORRECCIÓN 1: Declaración de estados para la foto adicional ***
+  const [fotoAdicional, setFotoAdicional] = useState<string | null>(null);
+  const [subiendoAdicional, setSubiendoAdicional] = useState(false);
+
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<number | null>(null);
   const [disponible, setDisponible] = useState(true);
 
@@ -47,7 +52,7 @@ export default function PlatosScreen() {
     cargarCategoria();
   }, [isReady, db]);
 
-  // ── Selección de imagen via hook archivos.ts ──────────────────────────────
+  // ── Selección de imágenes ────────────────────────────────────────────────
   const handleSubirFoto = async () => {
     if (fotos.length >= 2) {
       alert('Máximo 2 fotos permitidas.');
@@ -57,12 +62,28 @@ export default function PlatosScreen() {
     if (uri) setFotos(prev => [...prev, uri]);
   };
 
+  // *** CORRECCIÓN 2: Función ubicada en el lugar correcto ***
+  const handleSubirFotoAdicional = async () => {
+    try {
+      setSubiendoAdicional(true);
+      const uri = await seleccionarImagen();
+      if (uri) {
+        setFotoAdicional(uri);
+      }
+    } catch (error) {
+      console.log('Error seleccionando foto adicional:', error);
+    } finally {
+      setSubiendoAdicional(false);
+    }
+  };
+
   // ── Limpiar formulario ────────────────────────────────────────────────────
   const limpiarFormulario = () => {
     setNombre('');
     setDescripcion('');
     setPrecio('');
     setFotos([]);
+    setFotoAdicional(null);
     setCategoriaSeleccionada(null);
     setDisponible(true);
   };
@@ -96,13 +117,16 @@ export default function PlatosScreen() {
     const sesion: RestauranteI = JSON.parse(isLogin);
     const idRestaurante: string = sesion.id_restaurante?.toString() ?? '0';
 
+    // *** CORRECCIÓN 3: Incluir la foto adicional en el payload ***
     const nuevoPlato: PlatosI = {
       id_restaurante: idRestaurante,
       id_categoria: categoriaSeleccionada,
       nombre: nombre.trim(),
       descripcion: descripcion.trim(),
       precio: Number(precio),
-      imagen_url: fotos.length > 0 ? JSON.stringify(fotos) : '', // Guardamos ambas fotos como JSON string
+      imagen_url: fotos.length > 0 ? JSON.stringify(fotos) : '',
+      // Si tu backend/BD soporta el campo de la foto de detalle:
+      ...(fotoAdicional ? { foto_detalle_url: fotoAdicional } : {}),
     };
 
     try {
@@ -133,7 +157,7 @@ export default function PlatosScreen() {
           </Text>
         </View>
 
-        {/* ── Fotos ─────────────────────────────────────────────────────── */}
+        {/* ── Fotos Principales ────────────────────────────────────────── */}
         <TouchableOpacity style={styles.uploadArea} onPress={handleSubirFoto} activeOpacity={0.7}>
           <View style={styles.iconCircle}>
             <Ionicons name="cloud-upload" size={28} color={Colors.primary} />
@@ -165,6 +189,48 @@ export default function PlatosScreen() {
             );
           })}
         </View>
+
+        {/* ── NUEVO APARTADO: FOTO ADICIONAL DE DETALLE ────────────────── */}
+        <Text style={styles.sectionLabel}>Modelo 3D (Opcional)</Text>
+        
+        {subiendoAdicional ? (
+          <View style={[styles.uploadArea, { justifyContent: 'center' }]}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={[styles.uploadSub, { marginTop: 10 }]}>Abriendo galería...</Text>
+          </View>
+        ) : fotoAdicional ? (
+          <View style={styles.fotoAdicionalContainer}>
+            <Image 
+              source={{ uri: fotoAdicional }} 
+              style={styles.fotoAdicionalPreview} 
+              resizeMode="cover" 
+            />
+            <View style={styles.fotoAdicionalInfo}>
+              <Text style={styles.uploadTitle}>Foto seleccionada</Text>
+              <TouchableOpacity onPress={handleSubirFotoAdicional} style={styles.cambiarFotoBtn}>
+                <Text style={styles.cambiarFotoText}>Cambiar foto</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.removePhotoBadge}
+              onPress={() => setFotoAdicional(null)}
+            >
+              <Ionicons name="close-circle" size={26} color={Colors.error} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity 
+            style={[styles.uploadArea, styles.uploadAreaAdicional]} 
+            onPress={handleSubirFotoAdicional} 
+            activeOpacity={0.7}
+          >
+            <View style={[styles.iconCircle, { backgroundColor: Colors.backgroundGray }]}>
+              <Ionicons name="camera-outline" size={28} color={Colors.textSecondary} />
+            </View>
+            <Text style={styles.uploadTitle}>Agregar Modelo 3D</Text>
+            <Text style={styles.uploadSub}>Toca para abrir la galería</Text>
+          </TouchableOpacity>
+        )}
 
         {/* ── Nombre ─────────────────────────────────────────────────────── */}
         <View style={styles.inputContainer}>
@@ -312,10 +378,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: Spacing.xxl,
-    marginTop: -Spacing.md, // para acercarlo al uploadArea
+    marginTop: -Spacing.md,
   },
   thumbnailBox: {
-    height: 120, // Rectangular para mejor visualización
+    height: 120,
     borderRadius: Spacing.borderRadius.lg,
     backgroundColor: Colors.backgroundGray,
     justifyContent: 'center',
@@ -493,5 +559,52 @@ const styles = StyleSheet.create({
     color: Colors.textWhite,
     fontSize: Typography.sizes.lg,
     fontWeight: 'bold',
+  },
+
+  // ── Foto Adicional Estilos ─────────────────────────────────────────────
+  uploadAreaAdicional: {
+    minHeight: 120,
+    padding: Spacing.xl,
+    backgroundColor: Colors.backgroundGray + '50',
+    borderColor: Colors.borderLight,
+    marginBottom: Spacing.xl,
+  },
+  fotoAdicionalContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.backgroundGray,
+    borderRadius: Spacing.borderRadius.xl,
+    padding: Spacing.md,
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  fotoAdicionalPreview: {
+    width: 80,
+    height: 80,
+    borderRadius: Spacing.borderRadius.lg,
+    marginRight: Spacing.md,
+  },
+  fotoAdicionalInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  cambiarFotoBtn: {
+    marginTop: 4,
+  },
+  cambiarFotoText: {
+    color: Colors.primary,
+    fontSize: Typography.sizes.sm,
+    fontWeight: '600',
+  },
+  removePhotoBadge: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    backgroundColor: 'white',
+    borderRadius: 13,
+    elevation: 3,
+    zIndex: 10,
   },
 });
