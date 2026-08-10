@@ -89,11 +89,7 @@ export default function ProfileScreen() {
       if (!isLogin) return;
 
       const sesion: Usuarios = JSON.parse(isLogin);
-      let usuarioDb =
-        (sesion.id_usuario
-          ? await obtenerUsuarioPorId(Number(sesion.id_usuario))
-          : undefined) ??
-        (sesion.email ? await obtenerUsuarioCorreo(sesion.email) : undefined);
+      let usuarioDb =(sesion.email ? await obtenerUsuarioCorreo(sesion.email) : undefined);
 
       if (usuarioDb) {
         setUser(usuarioDb);

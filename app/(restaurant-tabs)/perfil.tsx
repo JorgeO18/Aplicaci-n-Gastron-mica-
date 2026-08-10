@@ -28,6 +28,7 @@ export default function PerfilScreen() {
       const sesion: RestauranteI = JSON.parse(isLogin);
       if (sesion) {
         setRestaurant(sesion)
+        
       }
       
       const planData = await AsyncStorage.getItem('@plan_restaurante');

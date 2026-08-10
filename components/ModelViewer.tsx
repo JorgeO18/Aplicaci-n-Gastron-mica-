@@ -8,7 +8,7 @@ import * as THREE from "three";
 function Model({ modelPath, modo = false }: { modelPath: any; modo: boolean }) {
   const gltf = useGLTF(modelPath);
   const scene = (gltf as any).scene;
-  const escala = modo ? 0.8 : 1.4;
+  const escala = modo ? 0.8 : 1.7;
   useEffect(() => {
   scene.traverse((child: any) => {
     if (child.isMesh && child.material?.map) {

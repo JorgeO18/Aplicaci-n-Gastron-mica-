@@ -20,12 +20,16 @@ export default function ARScreen() {
 
           console.log("parsed:", parsed);
           console.log("typeof parsed:", typeof parsed);
+          if(parsed === 'Untitled' || parsed === 'Untitled2'){
 
-          const modelRequerido = MODELS[parsed];
-
-          console.log("modelRequerido:", modelRequerido);
-
-          setModel(modelRequerido);
+            const modelRequerido = MODELS[parsed];
+  
+            console.log("modelRequerido:", modelRequerido);
+  
+            setModel(modelRequerido);
+          }else{
+            setModel(parsed)
+          }
         }
       } catch (error) {
         console.log(error);

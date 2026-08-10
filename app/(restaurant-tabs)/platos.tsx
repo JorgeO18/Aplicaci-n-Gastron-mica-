@@ -1,12 +1,12 @@
- import { Colors } from '@/constants/colors';
-import { Spacing } from '@/constants/spacing';
-import { Typography } from '@/constants/typography';
-import { seleccionarImagen } from '@/hooks/archivos';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { Colors } from "@/constants/colors";
+import { Spacing } from "@/constants/spacing";
+import { Typography } from "@/constants/typography";
+import { seleccionarImagen, seleccionarGLB } from "@/hooks/archivos";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -18,24 +18,33 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { Categorias, PlatosI, RestauranteI, useBaseDeDatos } from '../../hooks/dataBase';
+} from "react-native";
+import {
+  Categorias,
+  PlatosI,
+  RestauranteI,
+  useBaseDeDatos,
+} from "../../hooks/dataBase";
+import ModelViewer from "@/components/ModelViewer";
 
 export default function PlatosScreen() {
   const router = useRouter();
   const { db, isReady, registrarPlato, obtenerCategorias } = useBaseDeDatos();
 
   // ── Datos del formulario ──────────────────────────────────────────────────
-  const [nombre, setNombre] = useState('');
-  const [descripcion, setDescripcion] = useState('');
-  const [precio, setPrecio] = useState('');
+  const [nombre, setNombre] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [precio, setPrecio] = useState("");
   const [fotos, setFotos] = useState<string[]>([]);
-  
+  const [modelo, setModelo] = useState("");
+
   // *** CORRECCIÓN 1: Declaración de estados para la foto adicional ***
   const [fotoAdicional, setFotoAdicional] = useState<string | null>(null);
   const [subiendoAdicional, setSubiendoAdicional] = useState(false);
 
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<number | null>(null);
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<
+    number | null
+  >(null);
   const [disponible, setDisponible] = useState(true);
 
   // ── Datos auxiliares ──────────────────────────────────────────────────────
@@ -55,11 +64,11 @@ export default function PlatosScreen() {
   // ── Selección de imágenes ────────────────────────────────────────────────
   const handleSubirFoto = async () => {
     if (fotos.length >= 2) {
-      alert('Máximo 2 fotos permitidas.');
+      alert("Máximo 2 fotos permitidas.");
       return;
     }
     const uri = await seleccionarImagen();
-    if (uri) setFotos(prev => [...prev, uri]);
+    if (uri) setFotos((prev) => [...prev, uri]);
   };
 
   // *** CORRECCIÓN 2: Función ubicada en el lugar correcto ***
@@ -71,21 +80,26 @@ export default function PlatosScreen() {
         setFotoAdicional(uri);
       }
     } catch (error) {
-      console.log('Error seleccionando foto adicional:', error);
+      console.log("Error seleccionando foto adicional:", error);
     } finally {
       setSubiendoAdicional(false);
     }
   };
-
+  //-------Seleccion Modelo 3D ---------------------------------
+  const handleSubirModelo = async () => {
+    const uri = await seleccionarGLB();
+    if (uri) setModelo(uri);
+  };
   // ── Limpiar formulario ────────────────────────────────────────────────────
   const limpiarFormulario = () => {
-    setNombre('');
-    setDescripcion('');
-    setPrecio('');
+    setNombre("");
+    setDescripcion("");
+    setPrecio("");
     setFotos([]);
     setFotoAdicional(null);
     setCategoriaSeleccionada(null);
     setDisponible(true);
+    setModelo('')
   };
 
   // ── Registrar plato en la BD ──────────────────────────────────────────────
@@ -93,29 +107,29 @@ export default function PlatosScreen() {
     if (!isReady || !db) return;
 
     if (!nombre.trim()) {
-      alert('El nombre del platillo es obligatorio.');
+      alert("El nombre del platillo es obligatorio.");
       return;
     }
     if (!descripcion.trim()) {
-      alert('La descripción es obligatoria.');
+      alert("La descripción es obligatoria.");
       return;
     }
     if (!precio.trim() || isNaN(Number(precio)) || Number(precio) <= 0) {
-      alert('Ingresa un precio válido.');
+      alert("Ingresa un precio válido.");
       return;
     }
     if (categoriaSeleccionada === null) {
-      alert('Selecciona una categoría para el platillo.');
+      alert("Selecciona una categoría para el platillo.");
       return;
     }
 
-    const isLogin = await AsyncStorage.getItem('sesion');
+    const isLogin = await AsyncStorage.getItem("sesion");
     if (!isLogin) {
-      alert('No hay sesión activa. Inicia sesión como restaurante.');
+      alert("No hay sesión activa. Inicia sesión como restaurante.");
       return;
     }
     const sesion: RestauranteI = JSON.parse(isLogin);
-    const idRestaurante: string = sesion.id_restaurante?.toString() ?? '0';
+    const idRestaurante: string = sesion.id_restaurante?.toString() ?? "0";
 
     // *** CORRECCIÓN 3: Incluir la foto adicional en el payload ***
     const nuevoPlato: PlatosI = {
@@ -124,19 +138,20 @@ export default function PlatosScreen() {
       nombre: nombre.trim(),
       descripcion: descripcion.trim(),
       precio: Number(precio),
-      imagen_url: fotos.length > 0 ? JSON.stringify(fotos) : '',
+      imagen_url: fotos.length > 0 ? JSON.stringify(fotos) : "",
       // Si tu backend/BD soporta el campo de la foto de detalle:
       ...(fotoAdicional ? { foto_detalle_url: fotoAdicional } : {}),
+      modelo_3d_url: modelo,
     };
 
     try {
       setGuardando(true);
       await registrarPlato(nuevoPlato);
-      alert('¡Platillo registrado con éxito!');
+      alert("¡Platillo registrado con éxito!");
       limpiarFormulario();
     } catch (e) {
-      console.log('Error al registrar plato:', e);
-      alert('No se pudo registrar el platillo. Inténtalo de nuevo.');
+      console.log("Error al registrar plato:", e);
+      alert("No se pudo registrar el platillo. Inténtalo de nuevo.");
     } finally {
       setGuardando(false);
     }
@@ -145,10 +160,9 @@ export default function PlatosScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Agrega un Platillo</Text>
@@ -158,12 +172,18 @@ export default function PlatosScreen() {
         </View>
 
         {/* ── Fotos Principales ────────────────────────────────────────── */}
-        <TouchableOpacity style={styles.uploadArea} onPress={handleSubirFoto} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.uploadArea}
+          onPress={handleSubirFoto}
+          activeOpacity={0.7}
+        >
           <View style={styles.iconCircle}>
             <Ionicons name="cloud-upload" size={28} color={Colors.primary} />
           </View>
           <Text style={styles.uploadTitle}>Seleccionar imagen</Text>
-          <Text style={styles.uploadSub}>Puedes subir hasta 2 fotos (opcional)</Text>
+          <Text style={styles.uploadSub}>
+            Puedes subir hasta 2 fotos (opcional)
+          </Text>
         </TouchableOpacity>
 
         {/* Placeholders / Miniaturas */}
@@ -171,19 +191,37 @@ export default function PlatosScreen() {
           {[0, 1].map((index) => {
             const hasPhoto = index < fotos.length;
             return (
-              <View key={index} style={[styles.thumbnailBox, { width: '48%' }]} pointerEvents="box-none">
+              <View
+                key={index}
+                style={[styles.thumbnailBox, { width: "48%" }]}
+                pointerEvents="box-none"
+              >
                 {hasPhoto ? (
-                  <View style={{ width: '100%', height: '100%' }}>
-                    <Image source={{ uri: fotos[index] }} style={styles.thumbnailImg} resizeMode="cover" />
+                  <View style={{ width: "100%", height: "100%" }}>
+                    <Image
+                      source={{ uri: fotos[index] }}
+                      style={styles.thumbnailImg}
+                      resizeMode="cover"
+                    />
                     <TouchableOpacity
                       style={styles.removePhotoBadgeList}
-                      onPress={() => setFotos(fotos.filter((_, i) => i !== index))}
+                      onPress={() =>
+                        setFotos(fotos.filter((_, i) => i !== index))
+                      }
                     >
-                      <Ionicons name="close-circle" size={24} color={Colors.error} />
+                      <Ionicons
+                        name="close-circle"
+                        size={24}
+                        color={Colors.error}
+                      />
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <Ionicons name="image-outline" size={28} color={Colors.textLight} />
+                  <Ionicons
+                    name="image-outline"
+                    size={28}
+                    color={Colors.textLight}
+                  />
                 )}
               </View>
             );
@@ -192,40 +230,58 @@ export default function PlatosScreen() {
 
         {/* ── NUEVO APARTADO: FOTO ADICIONAL DE DETALLE ────────────────── */}
         <Text style={styles.sectionLabel}>Modelo 3D (Opcional)</Text>
-        
-        {subiendoAdicional ? (
-          <View style={[styles.uploadArea, { justifyContent: 'center' }]}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={[styles.uploadSub, { marginTop: 10 }]}>Abriendo galería...</Text>
-          </View>
-        ) : fotoAdicional ? (
-          <View style={styles.fotoAdicionalContainer}>
-            <Image 
-              source={{ uri: fotoAdicional }} 
-              style={styles.fotoAdicionalPreview} 
-              resizeMode="cover" 
-            />
-            <View style={styles.fotoAdicionalInfo}>
-              <Text style={styles.uploadTitle}>Foto seleccionada</Text>
-              <TouchableOpacity onPress={handleSubirFotoAdicional} style={styles.cambiarFotoBtn}>
-                <Text style={styles.cambiarFotoText}>Cambiar foto</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity
-              style={styles.removePhotoBadge}
-              onPress={() => setFotoAdicional(null)}
-            >
-              <Ionicons name="close-circle" size={26} color={Colors.error} />
-            </TouchableOpacity>
+        {modelo ? (
+          <View
+            style={[
+              styles.thumbnailBox,
+              {
+                width: "98%",
+                margin: "auto",
+                marginBottom: Spacing.xl,
+                minHeight: 140,
+              },
+            ]}
+            pointerEvents="box-none"
+          >
+            {modelo ? (
+              <View style={{ width: "100%", height: "100%" }}>
+                <ModelViewer modelPath={modelo} defaultModel={"false"} />
+                <TouchableOpacity
+                  style={styles.removePhotoBadgeList}
+                  onPress={() => setModelo("")}
+                >
+                  <Ionicons
+                    name="close-circle"
+                    size={24}
+                    color={Colors.error}
+                  />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Ionicons
+                name="image-outline"
+                size={28}
+                color={Colors.textLight}
+              />
+            )}
           </View>
         ) : (
-          <TouchableOpacity 
-            style={[styles.uploadArea, styles.uploadAreaAdicional]} 
-            onPress={handleSubirFotoAdicional} 
+          <TouchableOpacity
+            style={[styles.uploadArea, styles.uploadAreaAdicional]}
+            onPress={handleSubirModelo}
             activeOpacity={0.7}
           >
-            <View style={[styles.iconCircle, { backgroundColor: Colors.backgroundGray }]}>
-              <Ionicons name="camera-outline" size={28} color={Colors.textSecondary} />
+            <View
+              style={[
+                styles.iconCircle,
+                { backgroundColor: Colors.backgroundGray },
+              ]}
+            >
+              <Ionicons
+                name="camera-outline"
+                size={28}
+                color={Colors.textSecondary}
+              />
             </View>
             <Text style={styles.uploadTitle}>Agregar Modelo 3D</Text>
             <Text style={styles.uploadSub}>Toca para abrir la galería</Text>
@@ -252,7 +308,7 @@ export default function PlatosScreen() {
               placeholder="Precio..."
               placeholderTextColor={Colors.textLight}
               value={precio}
-              onChangeText={t => setPrecio(t.replace(/[^0-9.]/g, ''))}
+              onChangeText={(t) => setPrecio(t.replace(/[^0-9.]/g, ""))}
               keyboardType="decimal-pad"
             />
           </View>
@@ -265,7 +321,9 @@ export default function PlatosScreen() {
             placeholder="Escribe una pequeña descripción o los ingredientes principales..."
             placeholderTextColor={Colors.textLight}
             value={descripcion}
-            onChangeText={t => { if (t.length <= 300) setDescripcion(t); }}
+            onChangeText={(t) => {
+              if (t.length <= 300) setDescripcion(t);
+            }}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
@@ -278,17 +336,29 @@ export default function PlatosScreen() {
         {categorias.length === 0 ? (
           <Text style={styles.emptyCategoria}>Sin categorías disponibles</Text>
         ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriasScroll}>
-            {categorias.map(cat => {
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoriasScroll}
+          >
+            {categorias.map((cat) => {
               const seleccionada = categoriaSeleccionada === cat.id_categoria;
               return (
                 <TouchableOpacity
                   key={cat.id_categoria}
-                  style={[styles.categoriaChip, seleccionada && styles.categoriaChipActiva]}
+                  style={[
+                    styles.categoriaChip,
+                    seleccionada && styles.categoriaChipActiva,
+                  ]}
                   onPress={() => setCategoriaSeleccionada(cat.id_categoria)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.categoriaChipText, seleccionada && styles.categoriaChipTextActiva]}>
+                  <Text
+                    style={[
+                      styles.categoriaChipText,
+                      seleccionada && styles.categoriaChipTextActiva,
+                    ]}
+                  >
                     {cat.nombre}
                   </Text>
                 </TouchableOpacity>
@@ -300,14 +370,19 @@ export default function PlatosScreen() {
         {/* ── Disponible ─────────────────────────────────────────────────── */}
         <TouchableOpacity
           style={styles.disponibleRow}
-          onPress={() => setDisponible(prev => !prev)}
+          onPress={() => setDisponible((prev) => !prev)}
           activeOpacity={0.7}
         >
           <View style={[styles.toggle, disponible && styles.toggleActivo]}>
-            <View style={[styles.toggleCircle, disponible && styles.toggleCircleActivo]} />
+            <View
+              style={[
+                styles.toggleCircle,
+                disponible && styles.toggleCircleActivo,
+              ]}
+            />
           </View>
           <Text style={styles.disponibleLabel}>
-            {disponible ? 'Platillo disponible' : 'No disponible actualmente'}
+            {disponible ? "Platillo disponible" : "No disponible actualmente"}
           </Text>
         </TouchableOpacity>
 
@@ -331,7 +406,6 @@ export default function PlatosScreen() {
             )}
           </LinearGradient>
         </TouchableOpacity>
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -364,19 +438,19 @@ const styles = StyleSheet.create({
   // ── Contenedores de Imagen ────────────────────────────────────────────────
   uploadArea: {
     borderWidth: 2,
-    borderColor: Colors.primary + '50',
-    backgroundColor: Colors.primary + '0A',
-    borderStyle: 'dashed',
+    borderColor: Colors.primary + "50",
+    backgroundColor: Colors.primary + "0A",
+    borderStyle: "dashed",
     borderRadius: Spacing.borderRadius.xl,
     padding: Spacing.xxl,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: Spacing.xl,
     minHeight: 140,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   thumbnailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: Spacing.xxl,
     marginTop: -Spacing.md,
   },
@@ -384,22 +458,22 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: Spacing.borderRadius.lg,
     backgroundColor: Colors.backgroundGray,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    position: 'relative',
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    position: "relative",
     borderWidth: 1,
     borderColor: Colors.borderLight,
   },
   thumbnailImg: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   removePhotoBadgeList: {
-    position: 'absolute',
+    position: "absolute",
     top: 6,
     right: 6,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 12,
     zIndex: 10,
     elevation: 3,
@@ -409,8 +483,8 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: Colors.textWhite,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: Spacing.md,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
@@ -420,7 +494,7 @@ const styles = StyleSheet.create({
   },
   uploadTitle: {
     fontSize: Typography.sizes.lg,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.textPrimary,
     marginBottom: 4,
   },
@@ -442,8 +516,8 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   precioRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   precioSimbolo: {
     fontSize: Typography.sizes.lg,
@@ -456,7 +530,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.base,
     paddingTop: Spacing.md,
     height: 120,
-    position: 'relative',
+    position: "relative",
     marginBottom: Spacing.md,
   },
   textArea: {
@@ -465,7 +539,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   charCount: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 8,
     right: 12,
     fontSize: Typography.sizes.sm,
@@ -475,7 +549,7 @@ const styles = StyleSheet.create({
   // ── Categorías ────────────────────────────────────────────────────────────
   sectionLabel: {
     fontSize: Typography.sizes.md,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.textPrimary,
     marginBottom: Spacing.sm,
     marginTop: Spacing.xs,
@@ -490,10 +564,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.backgroundGray,
     marginRight: Spacing.sm,
     borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   categoriaChipActiva: {
-    backgroundColor: Colors.primary + '18',
+    backgroundColor: Colors.primary + "18",
     borderColor: Colors.primary,
   },
   categoriaChipText: {
@@ -502,7 +576,7 @@ const styles = StyleSheet.create({
   },
   categoriaChipTextActiva: {
     color: Colors.primary,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   emptyCategoria: {
     fontSize: Typography.sizes.sm,
@@ -512,8 +586,8 @@ const styles = StyleSheet.create({
 
   // ── Disponible toggle ─────────────────────────────────────────────────────
   disponibleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: Spacing.md,
   },
   toggle: {
@@ -521,7 +595,7 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     backgroundColor: Colors.backgroundGray,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: 3,
     marginRight: Spacing.md,
   },
@@ -533,10 +607,10 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     backgroundColor: Colors.textWhite,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   toggleCircleActivo: {
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
   },
   disponibleLabel: {
     fontSize: Typography.sizes.base,
@@ -547,8 +621,8 @@ const styles = StyleSheet.create({
   saveButton: {
     height: 55,
     borderRadius: Spacing.borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -558,25 +632,25 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: Colors.textWhite,
     fontSize: Typography.sizes.lg,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 
   // ── Foto Adicional Estilos ─────────────────────────────────────────────
   uploadAreaAdicional: {
     minHeight: 120,
     padding: Spacing.xl,
-    backgroundColor: Colors.backgroundGray + '50',
+    backgroundColor: Colors.backgroundGray + "50",
     borderColor: Colors.borderLight,
     marginBottom: Spacing.xl,
   },
   fotoAdicionalContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: Colors.backgroundGray,
     borderRadius: Spacing.borderRadius.xl,
     padding: Spacing.md,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: Spacing.xl,
-    position: 'relative',
+    position: "relative",
     borderWidth: 1,
     borderColor: Colors.borderLight,
   },
@@ -588,7 +662,7 @@ const styles = StyleSheet.create({
   },
   fotoAdicionalInfo: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   cambiarFotoBtn: {
     marginTop: 4,
@@ -596,13 +670,13 @@ const styles = StyleSheet.create({
   cambiarFotoText: {
     color: Colors.primary,
     fontSize: Typography.sizes.sm,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   removePhotoBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: -10,
     right: -10,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 13,
     elevation: 3,
     zIndex: 10,

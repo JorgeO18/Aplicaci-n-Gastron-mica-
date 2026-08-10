@@ -307,7 +307,7 @@ export default function RestaurantDetailScreen() {
             <Text style={styles.sectionTitle}>Horario</Text>
             <View style={styles.scheduleRow}>
               <Text style={styles.scheduleDay}>Lunes - Viernes</Text>
-              <Text style={styles.scheduleTime}>9:00 AM - 10:00 PM</Text>
+              <Text style={styles.scheduleTime}>{restaurante[0]?.horario}</Text>
             </View>
             <View style={styles.scheduleRow}>
               <Text style={styles.scheduleDay}>Sábado - Domingo</Text>

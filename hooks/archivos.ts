@@ -26,7 +26,7 @@ export async function seleccionarImagen() {
 export async function seleccionarGLB() {
     try {
         const resultado = await DocumentPicker.getDocumentAsync({
-            type: ['model/gltf-binary'],
+            type: ['model/gltf-binary', 'application/octet-stream', '*/*'],
             copyToCacheDirectory: true
         });
 

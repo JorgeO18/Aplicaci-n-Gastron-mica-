@@ -132,9 +132,11 @@ export default function HomeScreen() {
         fuente
       FROM restaurantes
     `);
-
+      
       setRestaurante(result);
       bdCargadaRef.current = true; // ← marcar que la BD ya cargó
+      await insertarDemos(result);
+
 
       const apiRestaurantes = result.filter(r => r.fuente === 'api');
       const ubi = await AsyncStorage.getItem(LOCAL_KEY);
@@ -152,46 +154,46 @@ export default function HomeScreen() {
     iniciarBD();
   }, [db]);
 
-  // 2. Verificar ubicación — ahora usa ref, nunca lee estado stale
-  useEffect(() => {
-    const verificarUbicacion = async () => {
-      if (!location || !bdCargadaRef.current) return; // ← espera que BD cargue
+  // // 2. Verificar ubicación — ahora usa ref, nunca lee estado stale
+  // useEffect(() => {
+  //   const verificarUbicacion = async () => {
+  //     if (!location || !bdCargadaRef.current) return; // ← espera que BD cargue
 
-      const last = lastFetchRef.current;
+  //     const last = lastFetchRef.current;
 
-      if (!last) {
-        // Primera vez: pedir a la API
-        await fetchRestaurants(location.latitude, location.longitude);
-        lastFetchRef.current = location;
-        await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(location));
-        return;
-      }
+  //     if (!last) {
+  //       // Primera vez: pedir a la API
+  //       await fetchRestaurants(location.latitude, location.longitude);
+  //       lastFetchRef.current = location;
+  //       await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(location));
+  //       return;
+  //     }
 
-      const distance = getDistanceInMeters(
-        last.latitude,
-        last.longitude,
-        location.latitude,
-        location.longitude,
-      );
+  //     const distance = getDistanceInMeters(
+  //       last.latitude,
+  //       last.longitude,
+  //       location.latitude,
+  //       location.longitude,
+  //     );
 
-      console.log("Distancia recorrida:", distance);
+  //     console.log("Distancia recorrida:", distance);
 
-      // Solo llama si se movió más de 5km — ya NO usa restaurante.length
-      if (distance > 5000) {
-        fetchRestaurants(location.latitude, location.longitude);
-        lastFetchRef.current = location;
-        await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(location));
-      }
-    };
+  //     // Solo llama si se movió más de 5km — ya NO usa restaurante.length
+  //     if (distance > 5000) {
+  //       fetchRestaurants(location.latitude, location.longitude);
+  //       lastFetchRef.current = location;
+  //       await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(location));
+  //     }
+  //   };
 
-    verificarUbicacion();
-  }, [location]); // ← location es la única dependencia real
+  //   verificarUbicacion();
+  // }, [location]); // ← location es la única dependencia real
 
-  // 3. Cuando llegan restaurantes de la API y la BD está lista, guardar y mostrar
-  useEffect(() => {
-    if (!db || restaurants.length === 0) return;
-    guardarRestaurants();
-  }, [db, restaurants]);
+  // // 3. Cuando llegan restaurantes de la API y la BD está lista, guardar y mostrar
+  // useEffect(() => {
+  //   if (!db || restaurants.length === 0) return;
+  //   guardarRestaurants();
+  // }, [db, restaurants]);
 
   const guardarRestaurants = async () => {
     if (!db || restaurants.length === 0) {

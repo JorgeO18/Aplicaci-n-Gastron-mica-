@@ -40,6 +40,7 @@ export interface PlatosI {
     descripcion: string;
     precio: number;
     imagen_url: string;
+    modelo_3d_url: string;
 
 }
 export interface Favoritos {
@@ -92,10 +93,10 @@ export interface RestauranteI {
     fuente?: string;
 }
 
-export type CampoRestaurante = 'nombre' | 'descripcion' | 'tipo_comida' | 'direccion' | 'telefono' | 'horario' | 'correo' | 'contraseña' | 'imagen_url'|'portada_url';
+export type CampoRestaurante = 'nombre' | 'descripcion' | 'tipo_comida' | 'direccion' | 'telefono' | 'horario' | 'correo' | 'contraseña' | 'imagen_url' | 'portada_url';
 export interface Categorias {
     id_categoria: number,
-    nombre : string
+    nombre: string
 }
 
 export interface Resena {
@@ -240,10 +241,10 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
     `);
 
     try {
-    await database.execAsync(`ALTER TABLE restaurantes ADD COLUMN portada_url TEXT`); // <--- AGREGA ESTE TRY/CATCH PARA PORTADA
-} catch {
-    // La columna ya existe
-}
+        await database.execAsync(`ALTER TABLE restaurantes ADD COLUMN portada_url TEXT`); // <--- AGREGA ESTE TRY/CATCH PARA PORTADA
+    } catch {
+        // La columna ya existe
+    }
 
 
     try {
@@ -263,6 +264,17 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
         }
     }
 
+    const sistemaExiste = await database.getFirstAsync(
+        `SELECT id_usuario FROM usuarios WHERE email = ?`,
+        ['sistema@gmail.com']
+    );
+    if (!sistemaExiste) {
+        await database.runAsync(
+            `INSERT INTO usuarios (email, password, id_tipo_usuario) VALUES (?, ?, ?)`,
+            ['sistema@gmail.com', '12345', 3]
+        );
+    }
+
     const catCount = await database.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM categoria');
     if (catCount?.count === 0) {
         const categorias = [
@@ -276,6 +288,19 @@ export async function inicializarDB(database: SQLite.SQLiteDatabase) {
             );
         }
     }
+    const restCount = await database.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM restaurantes');
+    if (restCount?.count === 0) {
+        const restaurantes = [
+            [1, 'Sabor Costeño', 'Llanera El Sabor Costeño es un restaurante de estilo llanero ubicado en el sector Vallejo de Sincelejo, Sucre. Está orientado a la cocina típica basada en carnes asadas y platos tradicionales de la región, una oferta muy común y apreciada en la ciudad.', 'Tradicional', '96, Vallejo, Sincelejo, Sucre', 'Sincelejo', 9.30713448641261, -75.41294144699528, 'https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcQTC2qnW8SFrBZs1O2Pzva9Tfs33bPt229PVaKUU_zv-ncNzvwW', '3127458629', '8 a.m.–10:30 p.m'],
+            [1,'Restaurante Rancho Grande','Restaurante tradicional de Sincelejo reconocido por su amplia oferta de carnes a la parrilla, platos típicos de la región Caribe y un ambiente ideal para compartir en familia o con amigos.Cuenta con servicio a domicilio, reservas y zona de parqueo.','Tradicional','Cl. 38 #34 - 366', 'Sincelejo', 9.314424367276574, -75.37234814717183,'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/14/4f/5e/98/el-restaurante-en-pleno.jpg?w=1200&h=1200&s=1','52806864','10 a.m.–10 p.m'],
+            [1, 'Llanera el Chamo N°1', 'Restaurante especializado en carnes asadas y comida típica colombiana. Ofrece almuerzos, sopas y platos a la parrilla, destacándose por sus precios accesibles y servicio rápido', 'Tipica', 'a 13-123, Miraflores, Cl. 32 #13-1', 'Sincelejo', 9.292242663030455, -75.39746713105046, 'https://maps.app.goo.gl/R5K5YJ3F83dCCtMN7', '3218891217', '7 a.m.–10 p.m']
+        ];
+        for (const restau of restaurantes) {
+            await database.runAsync(`INSERT INTO restaurantes( id_usuario,nombre, descripcion, tipo_comida, direccion, ciudad,latitud,longitud, imagen_url, telefono, horario, fuente)VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,restau)
+        }
+        
+    }
+
 }
 
 // ✅ Hook que reemplaza useBaseDeDatos — usa el contexto del provider
@@ -284,13 +309,9 @@ export function useBaseDeDatos() {
 
     const insertarDemos = async (rest: RestauranteI[]) => {
         const platos = [
-            [1, 'Mote de queso', 'Sopa tradicional de la región Caribe', 15000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
-            [2, 'Bandeja paisa', 'Plato típico antioqueño con frijoles, arroz y carne', 20000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
-            [1, 'Sancocho de gallina', 'Caldo tradicional preparado con yuca, papa y gallina', 14000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
-            [2, 'Arepa de huevo', 'Arepa frita rellena con huevo típica de la costa', 10000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
-            [1, 'Lechona tolimense', 'Cerdo relleno con arroz y arvejas al estilo tolimense', 22000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
-            [2, 'Ajiaco santafereño', 'Sopa bogotana preparada con pollo y diferentes papas', 18000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
-            [1, 'Tamal valluno', 'Masa de maíz rellena de carne y verduras envuelta en hoja', 15000.0, 'https://cdn.ajoverdarnel.com/img/pm/platos-termicos-biodegrdables-banner-movil.jpg', 'Untitled'],
+            [1, 'Mote de queso', 'Sopa tradicional de la región Caribe', 15000.0, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGv2oK5cY4oHbVZ-wEifzPsQnWfQapFJHU48ZSQraYmKpPR9Xtp88dl64&s=10', 'Untitled'],
+            [2, 'Bandeja paisa', 'Plato típico antioqueño con frijoles, arroz y carne', 20000.0, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQP1vzQy53DDkDTs-YGIA_uT8lmGoNHShMJ1eWtKcYwnl58-x3zsMCcMho&s=10', 'Untitled2'],
+            
         ];
 
         try {
@@ -306,10 +327,7 @@ export function useBaseDeDatos() {
             }
 
             // usuarios solo tiene email, password e id_tipo_usuario
-            await db.runAsync(
-                `INSERT OR IGNORE INTO usuarios (email, password, id_tipo_usuario) VALUES (?, ?, ?)`,
-                ['sistema@gmail.com', '12345', 3]
-            );
+
         } catch (error) {
             console.log('Error al insertar datos Demo:', error);
         }
@@ -546,7 +564,7 @@ export function useBaseDeDatos() {
                 };
             }
 
-            
+
             if (campo === 'email') {
                 const correoExistente = await db.getFirstAsync(
                     `SELECT id_usuario FROM usuarios WHERE email = ? AND id_usuario != ?`,
@@ -648,14 +666,15 @@ export function useBaseDeDatos() {
     const registrarPlato = async (plato: PlatosI) => {
         try {
             await db.runAsync(
-                `INSERT OR IGNORE INTO platos (id_restaurante, id_categoria, nombre, descripcion, precio, imagen_url) VALUES (?, ?, ?, ?, ?, ?)`,
+                `INSERT OR IGNORE INTO platos (id_restaurante, id_categoria, nombre, descripcion, precio, imagen_url, modelo_3d_url) VALUES (?, ?, ?, ?, ?, ?,?)`,
                 [
                     plato.id_restaurante,
                     plato.id_categoria,
                     plato.nombre,
                     plato.descripcion,
                     plato.precio,
-                    plato.imagen_url
+                    plato.imagen_url,
+                    plato.modelo_3d_url
                 ]
             );
         } catch (error) {
@@ -742,11 +761,11 @@ export function useBaseDeDatos() {
         }
     };
 
-    const obtenerCategorias = async ()=>{
+    const obtenerCategorias = async () => {
         try {
             return await db.getAllAsync<Categorias>(`SELECT id_categoria,nombre FROM categoria`) ?? []
         } catch (error) {
-            
+
         }
     }
 
