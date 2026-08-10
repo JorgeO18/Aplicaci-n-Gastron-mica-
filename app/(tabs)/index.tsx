@@ -136,8 +136,16 @@ export default function HomeScreen() {
       setRestaurante(result);
       bdCargadaRef.current = true; // ← marcar que la BD ya cargó
 
+      const apiRestaurantes = result.filter(r => r.fuente === 'api');
       const ubi = await AsyncStorage.getItem(LOCAL_KEY);
-      if (ubi) lastFetchRef.current = JSON.parse(ubi); // ← ref, no estado
+      
+      // Solo restaurar la última ubicación (para evitar consultar la API) 
+      // si realmente tenemos restaurantes cargados de la API en la base de datos.
+      if (ubi && apiRestaurantes.length > 0) {
+        lastFetchRef.current = JSON.parse(ubi);
+      } else {
+        lastFetchRef.current = null; // Fuerza a consultar la API nuevamente
+      }
       //console.log(location, '   ', bdCargadaRef.current)
     };
 

@@ -89,6 +89,7 @@ export interface RestauranteI {
     horario: string;
     correo?: string;
     contraseña?: string;
+    fuente?: string;
 }
 
 export type CampoRestaurante = 'nombre' | 'descripcion' | 'tipo_comida' | 'direccion' | 'telefono' | 'horario' | 'correo' | 'contraseña' | 'imagen_url'|'portada_url';

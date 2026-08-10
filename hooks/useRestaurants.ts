@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 
 const SEARCH_RADIUS_METERS = 5000;
-const OVERPASS_URL = 'https://overpass.kumi.systems/api/interpreter';
+const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
 export interface Restaurant {
   id: number;
@@ -42,7 +42,11 @@ export function useRestaurants(): UseRestaurantsResult {
       console.log('consultando')
       const response = await fetch(OVERPASS_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'TasteGoApp/1.0 (contact: soporte@tastego.com)',
+          'Accept': 'application/json'
+        },
         body: `data=${encodeURIComponent(query)}`,
       });
       console.log('Status Overpass:', response.status);  // 👈
